@@ -1,0 +1,2043 @@
+{% extends "base.html" %}
+{% block title %}the wall{% endblock %}
+{% block meta_description %} An interactive portal for citizens to action their data subject rights.{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── WALL SHELL ──────────────────────────────────────────── */
+.wall-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  flex: 1;
+  min-height: calc(100vh - 56px);
+}
+
+/* ── WALL SIDEBAR NAV ────────────────────────────────────── */
+.wall-sidebar {
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 56px;
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+}
+
+.wall-sidebar-brand {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wall-brand-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cg-deep);
+  margin-bottom: 4px;
+}
+
+.wall-brand-name {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--pitch-black);
+  letter-spacing: -0.02em;
+}
+
+.wall-brand-name span {
+  color: var(--cg-bright);
+}
+
+.wall-brand-sub {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--cg-deep);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* Group label — new. Each of the three phase-groups (Understand /
+   Act / Learn) gets a visible mono label instead of an unlabeled
+   divider, so the grouping means something at a glance. */
+.wall-nav-group-label {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--earth-warm, var(--pitch-black));
+  opacity: 0.55;
+  padding: 14px 20px 6px;
+}
+
+.wall-nav-group {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wall-nav-group:last-child {
+  border-bottom: none;
+}
+
+.wall-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  border-left: 2px solid transparent;
+  text-decoration: none;
+  background: none;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+
+.wall-nav-item:hover {
+  background: rgba(0,229,160,0.04);
+  border-left-color: var(--cg-deep);
+}
+
+.wall-nav-item.active {
+  background: rgba(0,229,160,0.07);
+  border-left-color: var(--cg-bright);
+}
+
+.wall-nav-item.active .wni-label { color: var(--cg-bright); }
+.wall-nav-item.active .wni-sub   { color: var(--cg-deep); }
+.wall-nav-item.active .wni-index { color: var(--cg-bright); border-color: var(--cg-bright); }
+
+/* Index badge — replaces reliance on the ti-* icon font as the
+   primary visual anchor for each row. Renders identically whether
+   or not the icon stylesheet is actually linked in base.html
+   (unconfirmed — worth checking directly). The <i> tag is kept
+   alongside as a decorative bonus if it does load, not as the
+   thing carrying meaning. */
+.wni-index {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--pitch-black);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.wni-icon {
+  font-size: 14px;
+  color: var(--cg-deep);
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.wni-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.wni-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pitch-black);
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.wni-sub {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  color: var(--pitch-black);
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+
+/* ── WALL ACTION AREA ────────────────────────────────────── */
+.wall-action {
+  padding: 36px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.wall-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wall-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cg-mid);
+}
+
+.wall-section-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--pitch-black);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.wall-section-desc {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--pitch-black);
+  line-height: 1.7;
+  max-width: 560px;
+  opacity: 0.85;
+}
+
+/* ── SITUATION BOX ───────────────────────────────────────── */
+.situation-box {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sit-chips-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pitch-black);
+  opacity: 0.7;
+}
+
+.sit-chips {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.sit-chip {
+  padding: 5px 13px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--cg-deep);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.sit-chip:hover,
+.sit-chip.active {
+  border-color: var(--cg-mid);
+  color: var(--cg-bright);
+  background: var(--bg);
+}
+
+.sit-textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--pitch-black);
+  padding: 14px 16px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  resize: vertical;
+  min-height: 80px;
+  border-radius: 3px;
+  transition: border-color 0.2s;
+  width: 100%;
+  line-height: 1.7;
+}
+
+.sit-textarea::placeholder { color: var(--pitch-black); opacity: 0.45; }
+.sit-textarea:focus {
+  outline: none;
+  border-color: var(--cg-mid);
+  box-shadow: 0 0 0 3px rgba(0,229,160,0.06);
+}
+
+.sit-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wall-btn-primary {
+  background: var(--cg-deep);
+  color: var(--offwhite, #fff);
+  padding: 9px 22px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  border-radius: 2px;
+  border: 1px solid var(--cg-mid);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.wall-btn-primary:hover {
+  background: var(--cg-mid);
+  box-shadow: 0 0 14px rgba(0,229,160,0.2);
+}
+
+.wall-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wall-btn-ghost {
+  background: transparent;
+  color: var(--pitch-black);
+  padding: 9px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.wall-btn-ghost:hover {
+  border-color: var(--cg-deep);
+  color: var(--cg-mid);
+}
+
+.sit-corpus-note {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--accent-blue);
+  letter-spacing: 0.06em;
+}
+
+/* ── LOADING PULSE ───────────────────────────────────────── */
+.wall-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--cg-mid);
+  letter-spacing: 0.1em;
+}
+
+.wall-loading-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cg-bright);
+  animation: wallPulse 1s ease-in-out infinite;
+}
+
+.wall-loading-dot:nth-child(2) { animation-delay: 0.15s; }
+.wall-loading-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes wallPulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* ── PRECEDENT CARDS ─────────────────────────────────────── */
+.precedent-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.precedent-zone-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--pitch-black);
+  opacity: 0.7;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.precedent-ai-response {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--cg-mid);
+  border-radius: 4px;
+  padding: 18px 20px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--pitch-black);
+  line-height: 1.8;
+}
+
+.precedent-ai-label {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cg-mid);
+  margin-bottom: 10px;
+}
+
+.prec-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--cg-deep);
+  border-radius: 4px;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  transition: border-color 0.15s;
+  animation: cardIn 0.3s var(--ease-out) both;
+}
+
+.prec-card:hover { border-color: rgba(0,229,160,0.4); }
+.prec-card.amber { border-left-color: var(--alert-amber); }
+.prec-card.dismissed { border-left-color: var(--pitch-black); }
+
+.prec-title {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--pitch-black);
+  margin-bottom: 3px;
+  transition: color 0.15s;
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+}
+
+.prec-title:hover { color: var(--cg-bright); }
+
+.prec-meta {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--pitch-black);
+  opacity: 0.65;
+  margin-bottom: 4px;
+}
+
+.prec-summary {
+  font-size: 0.75rem;
+  color: var(--pitch-black);
+  line-height: 1.6;
+  opacity: 0.8;
+}
+
+.prec-badge {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  padding: 3px 9px;
+  border-radius: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.badge-comp { background: rgba(0,229,160,0.12); color: var(--cg-bright); border: 1px solid rgba(0,229,160,0.3); }
+.badge-enf  { background: rgba(230,48,48,0.12); color: var(--alert-red); border: 1px solid rgba(230,48,48,0.3); }
+.badge-dis  { background: rgba(138,147,166,0.12); color: var(--pitch-black); border: 1px solid rgba(138,147,166,0.3); }
+.badge-amber { background: rgba(245,166,35,0.12); color: var(--alert-amber); border: 1px solid rgba(245,166,35,0.3); }
+
+/* ── WHATSAPP BAND ───────────────────────────────────────── */
+.wa-band {
+  background: rgba(0,229,160,0.04);
+  border: 1px solid rgba(0,229,160,0.2);
+  border-radius: 4px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.wa-band-icon {
+  font-size: 22px;
+  color: var(--cg-mid);
+  flex-shrink: 0;
+}
+
+.wa-band-text {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: var(--pitch-black);
+  line-height: 1.5;
+}
+
+.wa-band-text strong {
+  display: block;
+  color: var(--cg-deep);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.wa-band-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: var(--bg);
+  color: var(--cg-deep);
+  border: 1px solid var(--cg-mid);
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s;
+}
+
+.wa-band-btn:hover { background: var(--cg-mid); color: var(--offwhite, #fff); }
+
+/* ── RIGHTS LIST ─────────────────────────────────────────── */
+.rights-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.right-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+
+.right-item:hover {
+  border-color: rgba(0,229,160,0.3);
+  background: rgba(0,229,160,0.02);
+}
+
+.right-item-icon {
+  font-size: 18px;
+  color: var(--cg-mid);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.right-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.right-item-title {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--pitch-black);
+}
+
+.right-item-desc {
+  font-size: 0.75rem;
+  color: var(--pitch-black);
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.right-item-section {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--cg-deep);
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+/* ── STATS ROW ───────────────────────────────────────────── */
+.wall-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.wall-stat {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wall-stat-num {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--cg-bright);
+  letter-spacing: -0.02em;
+}
+
+.wall-stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pitch-black);
+  opacity: 0.65;
+}
+
+/* ── TWO COL ─────────────────────────────────────────────── */
+.wall-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* ── MINI PANEL ──────────────────────────────────────────── */
+.wall-mini-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px 18px;
+}
+
+.wall-mini-panel h4 {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pitch-black);
+  opacity: 0.7;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── LETTER PREVIEW ──────────────────────────────────────── */
+.letter-preview {
+  background: rgba(0,0,0,0.15);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--cg-deep);
+  border-radius: 4px;
+  padding: 18px 20px;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--pitch-black);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  min-height: 120px;
+}
+
+.letter-citations {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--cg-mid);
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  letter-spacing: 0.04em;
+}
+
+/* ── GLOSSARY ────────────────────────────────────────────── */
+.glossary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.glossary-item {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+  animation: cardIn 0.25s var(--ease-out) both;
+}
+
+.glossary-item:last-child { border-bottom: none; }
+
+.glossary-term {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+  margin-bottom: 3px;
+  letter-spacing: 0.02em;
+}
+
+.glossary-def {
+  font-size: 0.75rem;
+  color: var(--pitch-black);
+  line-height: 1.6;
+}
+
+.glossary-cat {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  padding: 2px 8px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.cat-legal      { background: rgba(26,110,255,0.12); color: var(--alert-blue); border: 1px solid rgba(26,110,255,0.25); }
+.cat-system     { background: rgba(0,229,160,0.12); color: var(--cg-bright); border: 1px solid rgba(0,229,160,0.25); }
+.cat-procedural { background: rgba(245,166,35,0.12); color: var(--alert-amber); border: 1px solid rgba(245,166,35,0.25); }
+.cat-regulatory { background: rgba(230,48,48,0.12); color: var(--alert-red); border: 1px solid rgba(230,48,48,0.25); }
+.cat-product    { background: rgba(138,147,166,0.12); color: var(--silver); border: 1px solid rgba(138,147,166,0.25); }
+
+/* ── DYK BANDS ───────────────────────────────────────────── */
+.dyk-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px 18px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  animation: cardIn 0.3s var(--ease-out) both;
+}
+
+.dyk-icon {
+  font-size: 20px;
+  color: var(--cg-mid);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.dyk-body { display: flex; flex-direction: column; gap: 4px; }
+
+.dyk-fact {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--pitch-black);
+  line-height: 1.7;
+}
+
+.dyk-fact strong { color: var(--cg-deep); }
+
+.dyk-source {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--offwhite);
+  letter-spacing: 0.06em;
+}
+
+/* ── FILING GUIDE ────────────────────────────────────────── */
+.filing-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.filing-step {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.filing-step:last-child { border-bottom: none; }
+
+.step-num {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--cg-deep);
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.step-title {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pitch-black);
+  margin-bottom: 6px;
+}
+
+.step-body {
+  font-size: 0.78rem;
+  color: var(--pitch-black);
+  line-height: 1.7;
+  opacity: 0.85;
+}
+
+.step-body a { color: var(--cg-mid); text-decoration: underline; }
+.step-highlight { color: var(--cg-mid); cursor: pointer; }
+.step-highlight:hover { color: var(--cg-bright); }
+
+/* ── BREACH CHECKER ──────────────────────────────────────── */
+.breach-result {
+  background: var(--bg-panel);
+  border: 1px solid var(--alert-amber);
+  border-radius: 4px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.breach-result-header {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--pitch-black);
+  text-transform: uppercase;
+}
+
+.breach-result-cta {
+  font-size: 0.75rem;
+  color: var(--pitch-black);
+  line-height: 1.6;
+}
+
+.breach-result-cta .cta-link {
+  color: var(--cg-mid);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ── CHECKER RESULT ──────────────────────────────────────── */
+.checker-result {
+  background: rgba(0,229,160,0.04);
+  border: 1px solid rgba(0,229,160,0.25);
+  border-radius: 4px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checker-result.negative {
+  background: rgba(138,147,166,0.04);
+  border-color: var(--border);
+}
+
+.checker-result-title {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cg-bright);
+}
+
+.checker-result.negative .checker-result-title {
+  color: var(--pitch-black);
+}
+
+.checker-result-body {
+  font-size: 0.78rem;
+  color: var(--pitch-black);
+  line-height: 1.7;
+}
+
+/* ── EMPTY STATE ─────────────────────────────────────────── */
+.wall-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 32px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  gap: 10px;
+}
+
+.wall-empty-glyph { font-size: 2rem; opacity: 0.25; }
+
+.wall-empty-text {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--pitch-black);
+  max-width: 300px;
+  line-height: 1.6;
+}
+
+/* ── INPUT OVERRIDE FOR WALL ─────────────────────────────── */
+.wall-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--pitch-black);
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  border-radius: 3px;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.wall-input::placeholder { color: var(--pitch-black); opacity: 0.45; }
+.wall-input:focus {
+  outline: none;
+  border-color: var(--cg-mid);
+  box-shadow: 0 0 0 3px rgba(0,229,160,0.06);
+}
+
+.wall-select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--pitch-black);
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  border-radius: 3px;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.wall-select:focus {
+  outline: none;
+  border-color: var(--cg-mid);
+}
+
+/* ── RADIO OPTION CARDS ──────────────────────────────────── */
+.option-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.option-card {
+  padding: 10px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--pitch-black);
+  letter-spacing: 0.04em;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+
+.option-card:hover { border-color: var(--cg-deep); }
+.option-card.selected {
+  border-color: var(--cg-mid);
+  background: rgba(0,229,160,0.05);
+  color: var(--cg-bright);
+}
+
+.option-card i { font-size: 14px; color: var(--pitch-black); opacity: 0.6; }
+.option-card.selected i { color: var(--cg-mid); opacity: 1; }
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── RESPONSIVE ──────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .wall-layout { grid-template-columns: 180px 1fr; }
+  .wall-action { padding: 28px 32px; }
+}
+
+@media (max-width: 800px) {
+  .wall-layout { grid-template-columns: 1fr; }
+  .wall-sidebar {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .wall-sidebar-brand { display: none; }
+  .wall-nav-group-label { display: none; }
+  .wall-nav-group {
+    flex-direction: row;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+    padding: 0;
+  }
+  .wall-nav-item {
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    padding: 12px 16px;
+  }
+  .wall-nav-item.active { border-bottom-color: var(--cg-bright); border-left: none; }
+  .wni-sub { display: none; }
+  .wall-two-col { grid-template-columns: 1fr; }
+  .wall-stats-row { grid-template-columns: 1fr 1fr; }
+  .wall-action { padding: 20px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wall-layout">
+
+  <!-- ── SIDEBAR NAV ──────────────────────────────────── -->
+  <nav class="wall-sidebar" aria-label="Wall navigation">
+    <div class="wall-sidebar-brand">
+      <div class="wall-brand-eyebrow">DRH</div>
+      <div class="wall-brand-name">DATA RIGHTS HUB</div>
+      <div class="wall-brand-sub">Your data rights,<br>backed by real cases.</div>
+    </div>
+
+    <!-- UNDERSTAND: figure out where you stand -->
+    <div class="wall-nav-group-label">Understand</div>
+    <div class="wall-nav-group">
+      <button class="wall-nav-item" data-section="ask">
+        <span class="wni-index">01</span>
+        <i class="wall-nav-item__icon ti ti-message-circle-question wni-icon" aria-hidden="true"></i>
+        <div class="wni-text">
+          <span class="wni-label">Ask /dapa</span>
+          <span class="wni-sub">Find your precedent</span>
+        </div>
+      </button>
+      <button class="wall-nav-item" data-section="rights">
+        <span class="wni-index">02</span>
+        <i class="ti ti-shield-check wni-icon" aria-hidden="true"></i>
+        <div class="wni-text">
+          <span class="wni-label">My rights</span>
+          <span class="wni-sub">Know what you're owed</span>
+        </div>
+      </button>
+      <button class="wall-nav-item" data-section="checker">
+        <span class="wni-index">03</span>
+        <i class="ti ti-clipboard-check wni-icon" aria-hidden="true"></i>
+        <div class="wni-text">
+          <span class="wni-label">DSR checker</span>
+          <span class="wni-sub">Was your right ignored?</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- ACT: do something about it -->
+    <div class="wall-nav-group-label">Act</div>
+    <div class="wall-nav-group">
+      <button class="wall-nav-item" data-section="letter">
+        <span class="wni-index">04</span>
+        <i class="ti ti-file-text wni-icon" aria-hidden="true"></i>
+        <div class="wni-text">
+          <span class="wni-label">Write a letter</span>
+          <span class="wni-sub">Demand action</span>
+        </div>
+      </button>
+      <button class="wall-nav-item" data-section="breach">
+        <span class="wni-index">05</span>
+        <i class="ti ti-alert-triangle wni-icon" aria-hidden="true"></i>
+        <div class="wni-text">
+          <span class="wni-label">Breach checker</span>
+          <span class="wni-sub">Check a company</span>
+        </div>
+      </button>
+      <button class="wall-nav-item" data-section="file">
+        <span class="wni-index">06</span>
+        <i class="ti ti-send wni-icon" aria-hidden="true"></i>
+        <div class="wni-text">
+          <span class="wni-label">File a complaint</span>
+          <span class="wni-sub">Step-by-step ODPC guide</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- LEARN: background reading -->
+    <div class="wall-nav-group-label">Learn</div>
+    <div class="wall-nav-group">
+      <button class="wall-nav-item" data-section="lingo">
+        <span class="wni-index">07</span>
+        <i class="ti ti-vocabulary wni-icon" aria-hidden="true"></i>
+        <div class="wni-text">
+          <span class="wni-label">DSR lingo</span>
+          <span class="wni-sub">Plain-English glossary</span>
+        </div>
+      </button>
+      <button class="wall-nav-item" data-section="dyk">
+        <span class="wni-index">08</span>
+        <i class="ti ti-bulb wni-icon" aria-hidden="true"></i>
+        <div class="wni-text">
+          <span class="wni-label">Did you know?</span>
+          <span class="wni-sub">Corpus insights</span>
+        </div>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── ACTION AREA ──────────────────────────────────── -->
+  <main class="wall-action" id="wallActionArea" aria-live="polite">
+    <!-- Rendered by JS on load -->
+  </main>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ── CORPUS STATS (populated from API on load) ─────────── */
+let corpusStats = {{ corpus_stats | tojson }};
+const SECTORS   = {{ sectors | tojson }};
+
+/* ── NAV ────────────────────────────────────────────────── */
+function wallNav(btn) {
+  document.querySelectorAll('.wall-nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const section = btn.dataset.section;
+  renderSection(section);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── SECTION ROUTER ─────────────────────────────────────── */
+function renderSection(name) {
+  const area = document.getElementById('wallActionArea');
+  const renders = {
+    ask:     renderAsk,
+    rights:  renderRights,
+    checker: renderChecker,
+    letter:  renderLetter,
+    breach:  renderBreach,
+    lingo:   renderLingo,
+    dyk:     renderDyk,
+    file:    renderFile,
+  };
+  const fn = renders[name];
+  if (fn) fn(area);
+}
+
+/* ── SHARED FRAGMENTS ───────────────────────────────────── */
+function waBand(msg) {
+  const waMsg = msg || 'Send your situation to +254 700 DAPA00 — get precedents in plain English or Swahili.';
+  return [
+    '<div class="wa-band">',
+    '<i class="ti ti-brand-whatsapp wa-band-icon" aria-hidden="true"></i>',
+    '<div class="wa-band-text">',
+    '<strong>Get this on WhatsApp</strong>',
+    waMsg,
+    '</div>',
+    '<button class="wa-band-btn" onclick="openWhatsApp()">Open WhatsApp ↗</button>',
+    '</div>'
+  ].join('\n  ');
+}
+
+function sectionHeader(eyebrow, title, desc) {
+  return `
+  <div class="wall-section-header">
+    <div class="wall-eyebrow">${eyebrow}</div>
+    <div class="wall-section-title">${title}</div>
+    ${desc ? `<div class="wall-section-desc">${desc}</div>` : ''}
+  </div>`;
+}
+
+function loadingHTML(msg) {
+  return `<div class="wall-loading">
+    <div class="wall-loading-dot"></div>
+    <div class="wall-loading-dot"></div>
+    <div class="wall-loading-dot"></div>
+    <span>${msg || 'Searching corpus…'}</span>
+  </div>`;
+}
+
+function outcomeClass(outcome) {
+  if (!outcome) return '';
+  if (outcome.includes('enforcement') || outcome.includes('prosecution')) return 'amber';
+  if (outcome === 'dismissed') return 'dismissed';
+  return '';
+}
+
+function outcomeBadge(outcome, quantum) {
+  if (!outcome) return '';
+  if (quantum && parseFloat(quantum) > 0) {
+    return `<span class="prec-badge badge-comp">KES ${Number(quantum).toLocaleString()}</span>`;
+  }
+  if (outcome.includes('enforcement')) return `<span class="prec-badge badge-enf">Enforcement notice</span>`;
+  if (outcome.includes('prosecution')) return `<span class="prec-badge badge-enf">Prosecution rec.</span>`;
+  if (outcome === 'dismissed') return `<span class="prec-badge badge-dis">Dismissed</span>`;
+  return `<span class="prec-badge badge-amber">${outcome.replace(/_/g,' ')}</span>`;
+}
+
+/* ── ASK /DAPA ──────────────────────────────────────────── */
+const SITUATION_CHIPS = [
+  'Lender shared my data without consent',
+  'Employer leaked my personal information',
+  'My photo used without my permission',
+  'Company refuses to delete my data',
+  'Debt collector harassing me with my data',
+  'App collected data I never agreed to',
+  'I was listed on CRB without notification',
+  'My medical data was disclosed',
+];
+
+let askState = { chip: '', text: '', results: null, aiResponse: null };
+
+function renderAsk(area) {
+  area.innerHTML = `
+    ${sectionHeader('Ask /dapa', 'What happened to your data?',
+      'Describe your situation. We match it against real ODPC determinations so you know exactly where you stand and what you could be owed.'
+    )}
+    <div class="situation-box">
+      <div class="sit-chips-label">Select a situation or describe your own below</div>
+      <div class="sit-chips" id="askChips">
+        ${SITUATION_CHIPS.map(c => '<button class="sit-chip" onclick="selectChip(this,this.dataset.val)" data-val="' + c.replace(/"/g,'&quot;') + '">' + c + '</button>').join('')}
+      </div>
+      <textarea class="sit-textarea" id="askInput"
+        placeholder="Describe your situation in plain language — or in Swahili. Be as specific as you can: which company, what happened, when."
+        rows="4">${askState.text}</textarea>
+      <div class="sit-controls">
+        <button class="wall-btn-primary" id="askBtn" onclick="doAsk()">Cases like this ↗</button>
+        <button class="wall-btn-ghost" onclick="clearAsk()">Clear</button>
+        <span class="sit-corpus-note">Searches ${corpusStats.total_cases || '—'} ODPC determinations</span>
+      </div>
+    </div>
+    <div id="askResults"></div>
+    ${waBand()}
+  `;
+  if (askState.chip) {
+    document.querySelectorAll('.sit-chip').forEach(c => {
+      if (c.textContent === askState.chip) c.classList.add('active');
+    });
+  }
+  if (askState.results) renderAskResults(askState.results, askState.aiResponse);
+}
+
+function selectChip(btn, text) {
+  const val = text || btn.dataset.val || '';
+  document.querySelectorAll('.sit-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  askState.chip = val;
+  document.getElementById('askInput').value = val;
+  askState.text = val;
+}
+
+function clearAsk() {
+  askState = { chip: '', text: '', results: null, aiResponse: null };
+  renderAsk(document.getElementById('wallActionArea'));
+}
+
+function doAsk() {
+  const q = document.getElementById('askInput').value.trim();
+  if (!q) return;
+  askState.text = q;
+
+  const resultsEl = document.getElementById('askResults');
+  resultsEl.innerHTML = loadingHTML('Matching against corpus…');
+  document.getElementById('askBtn').disabled = true;
+
+  fetch(`/api/wall/match?q=${encodeURIComponent(q)}`)
+    .then(r => r.json())
+    .then(data => {
+      askState.results   = data.results || [];
+      askState.aiResponse = data.ai_response || null;
+      document.getElementById('askBtn').disabled = false;
+      renderAskResults(askState.results, askState.aiResponse);
+    })
+    .catch(() => {
+      document.getElementById('askBtn').disabled = false;
+      resultsEl.innerHTML = `<div class="wall-empty">
+        <div class="wall-empty-glyph">⚠</div>
+        <div class="wall-empty-text">Search failed. Please try again.</div>
+      </div>`;
+    });
+}
+
+function renderAskResults(results, aiResponse) {
+  const el = document.getElementById('askResults');
+  if (!results || results.length === 0) {
+    el.innerHTML = `<div class="wall-empty">
+      <div class="wall-empty-glyph">◎</div>
+      <div class="wall-empty-text">No direct precedents matched. Try describing your situation differently — e.g. name the type of company or what data was used.</div>
+    </div>`;
+    return;
+  }
+
+  const aiBlock = aiResponse ? `
+    <div class="precedent-ai-response">
+      <div class="precedent-ai-label">/dapa assessment</div>
+      ${aiResponse.replace(/\n/g, '<br>')}
+    </div>` : '';
+
+  const cards = results.map((c, i) => `
+    <div class="prec-card ${outcomeClass(c.outcome_type)}" style="animation-delay:${i*60}ms">
+      <div style="min-width:0">
+        <a href="/case/${c.id}" class="prec-title">${c.title}</a>
+        <div class="prec-meta">${[c.sector, c.date, c.case_ref].filter(Boolean).join(' · ')}</div>
+        ${c.summary ? `<div class="prec-summary">${c.summary}</div>` : ''}
+      </div>
+      <div style="flex-shrink:0">${outcomeBadge(c.outcome_type, c.quantum)}</div>
+    </div>`).join('');
+
+  const firstTitle = results[0] ? results[0].title : '';
+  const letterCTA = '<button class="wall-btn-ghost" style="margin-top:4px" ' +
+    'onclick="goToLetter(this)" data-title="' + firstTitle.replace(/"/g, '&quot;') + '">' +
+    'Write a demand letter based on these precedents ↗</button>';
+
+  el.innerHTML = `
+    <div class="precedent-zone">
+      <div class="precedent-zone-label">${results.length} precedent${results.length !== 1 ? 's' : ''} matched</div>
+      ${aiBlock}
+      ${cards}
+      ${letterCTA}
+    </div>`;
+}
+
+/* ── MY RIGHTS ──────────────────────────────────────────── */
+// Static rights definitions — DPA sections don't change.
+// violation_count is populated dynamically from /api/sections/index.
+const RIGHTS_TEMPLATE = [
+  { icon: 'ti-info-circle',  title: 'Right to be informed',   sectionNum: '26(a)',
+    desc: 'Any company holding your data must tell you what it is being used for, before or at the point of collection.' },
+  { icon: 'ti-eye',          title: 'Right to access',        sectionNum: '26(b)',
+    desc: 'You can request a full copy of all personal data a company holds about you. They must comply.' },
+  { icon: 'ti-hand-stop',    title: 'Right to object',        sectionNum: '26(c)',
+    desc: 'You can tell any company to stop processing your data — in whole or in part. This right is absolute for direct marketing.' },
+  { icon: 'ti-pencil',       title: 'Right to correction',    sectionNum: '26(d)',
+    desc: 'If a company holds false or misleading data about you, you can demand it be corrected without delay.' },
+  { icon: 'ti-trash',        title: 'Right to deletion',      sectionNum: '26(e)',
+    desc: 'You can demand erasure of false or misleading personal data. This includes outdated loan blacklisting data.' },
+  { icon: 'ti-shield',       title: 'Sensitive data consent', sectionNum: '33',
+    desc: 'Your health status, ethnic origin, biometric data, and religion cannot be processed without your explicit consent.' },
+];
+
+let rightsData = null; // cached after first fetch
+
+function renderRights(area) {
+  const stats = corpusStats;
+
+  // Shell renders immediately with corpus stats
+  area.innerHTML =
+    sectionHeader('My rights', 'What the law gives you',
+      'Six enforceable rights under the Data Protection Act, 2019. Every registered company in Kenya must respect them — or face the ODPC.'
+    ) +
+    '<div class="wall-stats-row">' +
+      '<div class="wall-stat"><div class="wall-stat-num">' + (stats.total_cases || '—') + '</div><div class="wall-stat-label">Total ODPC cases </div></div>' +
+      '<div class="wall-stat"><div class="wall-stat-num">KES ' + (stats.total_award || '—') + '</div><div class="wall-stat-label">Total compensation awarded</div></div>' +
+      '<div class="wall-stat"><div class="wall-stat-num">' + (stats.highest_award || '—') + '</div><div class="wall-stat-label">Highest single award</div></div>' +
+    '</div>' +
+    '<div class="rights-grid" id="rightsGrid">' + loadingHTML('Loading rights data…') + '</div>' +
+    '<div class="wall-mini-panel"><h4>If your rights are ignored</h4>' +
+    '<p style="font-size:0.78rem;color:var(--pitch-black);line-height:1.7;opacity:0.85">' +
+    'The ODPC has awarded compensation in over 60% of cases where the respondent ignored a data subject rights request ' +
+    'before the complaint was filed. This is tracked in the corpus as the <strong style="color:var(--cg-deep)">DSR laziness flag</strong>. ' +
+    'Filing a complaint costs nothing. You do not need a lawyer. ' +
+    '<span class="step-highlight" onclick="goToSection(&quot;file&quot;)">How to file →</span>' +
+    '</p></div>';
+
+  // Fetch section violation counts then hydrate rights grid
+  if (rightsData) {
+    renderRightsGrid(rightsData);
+    return;
+  }
+
+  fetch('/api/sections/index')
+    .then(r => r.json())
+    .then(data => {
+      // Build flat lookup: section_number -> violation_count
+      const countMap = {};
+      Object.values(data).forEach(function(sections) {
+        sections.forEach(function(s) {
+          countMap[s.section_number] = s.violation_count || 0;
+        });
+      });
+      // Merge counts into rights template
+      rightsData = RIGHTS_TEMPLATE.map(function(r) {
+        return Object.assign({}, r, {
+          violation_count: countMap[r.sectionNum] || 0,
+          section: 's.' + r.sectionNum,
+        });
+      });
+      renderRightsGrid(rightsData);
+    })
+    .catch(function() {
+      // Fallback: render without counts
+      rightsData = RIGHTS_TEMPLATE.map(function(r) {
+        return Object.assign({}, r, { violation_count: null, section: 's.' + r.sectionNum });
+      });
+      renderRightsGrid(rightsData);
+    });
+}
+
+function renderRightsGrid(rights) {
+  const grid = document.getElementById('rightsGrid');
+  if (!grid) return;
+  grid.innerHTML = rights.map(function(r) {
+    const countNote = r.violation_count > 0
+      ? r.violation_count + ' case' + (r.violation_count !== 1 ? 's' : '') + ' documented ·'
+      : 'section ' + r.sectionNum;
+    return '<button class="right-item" onclick="askAboutRight(this.dataset.title)" data-title="' + r.title + '">' +
+      '<i class="ti ' + r.icon + ' right-item-icon" aria-hidden="true"></i>' +
+      '<div class="right-item-body">' +
+        '<div class="right-item-title">' + r.title + '</div>' +
+        '<div class="right-item-desc">' + r.desc + '</div>' +
+        '<div class="right-item-section">' + r.section + ' · ' + countNote +
+      '</div>' +
+    '</button>';
+  }).join('');
+}
+
+function askAboutRight(btnOrTitle) {
+  const title = (typeof btnOrTitle === 'string') ? btnOrTitle : btnOrTitle.dataset.title;
+  document.querySelectorAll('.wall-nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-section="ask"]').classList.add('active');
+  askState.text = 'My ' + title.toLowerCase() + ' was violated';
+  renderSection('ask');
+  setTimeout(function() {
+    const inp = document.getElementById('askInput');
+    if (inp) inp.value = askState.text;
+  }, 50);
+}
+
+/* ── DSR CHECKER ────────────────────────────────────────── */
+let checkerState = { request: '', response: '', assessed: false };
+
+function renderChecker(area) {
+  area.innerHTML = `
+    ${sectionHeader('DSR checker', 'Was your rights request ignored?',
+      'Two questions. Based on real ODPC case patterns, we tell you whether what happened to you likely constitutes a violation.'
+    )}
+    <div class="wall-two-col">
+      <div class="wall-mini-panel">
+        <h4>What did you request?</h4>
+        <div class="option-cards" id="checkerRequest">
+          ${[
+            ['ti-trash',     'Delete my data',           'erasure'],
+            ['ti-eye',       'Access my data',           'access'],
+            ['ti-hand-stop', 'Stop using my data',       'object'],
+            ['ti-pencil',    'Correct my data',          'correct'],
+            ['ti-info-circle',"Tell me how it is used",   'inform'],
+          ].map(([icon, label, val]) => `
+            <button class="option-card" data-val="${val}" onclick="selectCheckerOpt(this,'request')">
+              <i class="ti ${icon}" aria-hidden="true"></i>${label}
+            </button>`).join('')}
+        </div>
+      </div>
+      <div class="wall-mini-panel">
+        <h4>What happened next?</h4>
+        <div class="option-cards" id="checkerResponse">
+          ${[
+            ['ti-x',            'No response at all',                  'no_response'],
+            ['ti-clock',        'Still waiting after 30+ days',        'delayed'],
+            ['ti-alert-circle', 'Refused without any explanation',     'refused'],
+            ['ti-mood-confuzed','They agreed but did nothing',         'agreed_ignored'],
+            ['ti-check',        'They responded and complied',         'complied'],
+          ].map(([icon, label, val]) => `
+            <button class="option-card" data-val="${val}" onclick="selectCheckerOpt(this,'response')">
+              <i class="ti ${icon}" aria-hidden="true"></i>${label}
+            </button>`).join('')}
+        </div>
+      </div>
+    </div>
+    <button class="wall-btn-primary" onclick="assessChecker()" id="checkerBtn">Assess my situation ↗</button>
+    <div id="checkerResult"></div>`;
+}
+
+function selectCheckerOpt(btn, group) {
+  document.querySelectorAll(`#checker${group.charAt(0).toUpperCase()+group.slice(1)} .option-card`)
+    .forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  checkerState[group] = btn.dataset.val;
+}
+
+function assessChecker() {
+  const { request, response } = checkerState;
+  if (!request || !response) {
+    document.getElementById('checkerResult').innerHTML = `
+      <div class="wall-empty">
+        <div class="wall-empty-glyph">◎</div>
+        <div class="wall-empty-text">Select one option from each column first.</div>
+      </div>`;
+    return;
+  }
+  const el = document.getElementById('checkerResult');
+
+  if (response === 'complied') {
+    el.innerHTML = `<div class="checker-result negative">
+      <div class="checker-result-title">No violation — company complied</div>
+      <div class="checker-result-body">Your rights request was actioned. If the response was slow or partial, you still have grounds to request confirmation. If any data was left uncorrected or undeleted, <span class="step-highlight" onclick="goToSection('file')">file a complaint →</span></div>
+    </div>`;
+    return;
+  }
+
+  const verdicts = {
+    no_response:    'This is a clear violation. The ODPC has ruled against respondents for exactly this in the majority of cases in the corpus.',
+    delayed:        'Likely a violation. The ODPC treats unreasonable delay as a failure to action a DSR. 30+ days without response has been treated as non-compliance.',
+    refused:        'Likely a violation. Refusal requires a lawful justification. An unexplained refusal has been treated as unlawful in multiple determinations.',
+    agreed_ignored: 'Strong violation signal. Agreeing to comply then taking no action has attracted the harshest ODPC language in the corpus — it demonstrates bad faith.',
+  };
+
+  const statsNote = 'In the /dapa corpus, the <strong style="color:var(--cg-deep)">dsr_laziness_flag</strong> — the ODPC\'s own marker for this pattern — appears in cases that attract higher compensation awards.';
+
+  el.innerHTML = `<div class="checker-result">
+    <div class="checker-result-title">This likely qualifies as a DSR violation</div>
+    <div class="checker-result-body">
+      ${verdicts[response]} ${statsNote}<br><br>
+      <strong style="color:var(--cg-deep)">Suggested next steps:</strong><br>
+      1. <span class="step-highlight" onclick="goToSection('letter')">Write a formal demand letter →</span><br>
+      2. If no response within 14 days, <span class="step-highlight" onclick="goToSection('file')">file with the ODPC →</span>
+    </div>
+  </div>`;
+}
+
+/* ── WRITE A LETTER ─────────────────────────────────────── */
+let letterState = { right: '', company: '', name: '', sector: '', context: '', result: null };
+
+function renderLetter(area) {
+  area.innerHTML = `
+    ${sectionHeader('Write a letter', 'Generate your demand letter',
+      'Select your right, name the company, describe the issue. /dapa drafts a DPA-grounded letter citing real precedents — ready to send.'
+    )}
+    <div class="wall-two-col">
+      <div class="wall-mini-panel">
+        <h4>1. Your right</h4>
+        <div class="option-cards" id="letterRight">
+          ${[
+            ['ti-trash',      'Right to erasure',   'erasure'],
+            ['ti-eye',        'Right to access',    'access'],
+            ['ti-hand-stop',  'Right to object',    'object'],
+            ['ti-pencil',     'Right to correction','correction'],
+            ['ti-info-circle','Right to be informed','informed'],
+          ].map(([icon, label, val]) => `
+            <button class="option-card ${letterState.right === val ? 'selected' : ''}"
+              data-val="${val}" onclick="selectLetterOpt(this)">
+              <i class="ti ${icon}" aria-hidden="true"></i>${label}
+            </button>`).join('')}
+        </div>
+      </div>
+      <div class="wall-mini-panel">
+        <h4>2. Company details</h4>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <input class="wall-input" id="letterCompany" placeholder="Company name (e.g. Dapa Company)"
+            value="${letterState.company}">
+          <input class="wall-input" id="letterName" placeholder="Your name or initials (e.g. M.K)"
+            value="${letterState.name}">
+          <select class="wall-select" id="letterSector">
+            <option value="">Sector (optional)</option>
+            ${SECTORS.map(s => `<option value="${s}" ${letterState.sector===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+          <textarea class="sit-textarea" id="letterContext" style="min-height:70px"
+            placeholder="Briefly describe what happened and when…">${letterState.context}</textarea>
+        </div>
+      </div>
+    </div>
+    <button class="wall-btn-primary" id="letterBtn" onclick="generateLetter()">Generate letter ↗</button>
+    <div id="letterResult"></div>`;
+}
+
+function selectLetterOpt(btn) {
+  document.querySelectorAll('#letterRight .option-card').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  letterState.right = btn.dataset.val;
+}
+
+function generateLetter() {
+  letterState.company = document.getElementById('letterCompany').value.trim();
+  letterState.name    = document.getElementById('letterName').value.trim();
+  letterState.sector  = document.getElementById('letterSector').value;
+  letterState.context = document.getElementById('letterContext').value.trim();
+
+  if (!letterState.right || !letterState.company) {
+    document.getElementById('letterResult').innerHTML = `
+      <div class="wall-empty">
+        <div class="wall-empty-glyph">◎</div>
+        <div class="wall-empty-text">Select a right and enter the company name to continue.</div>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('letterBtn').disabled = true;
+  document.getElementById('letterResult').innerHTML = loadingHTML('Drafting your letter…');
+
+  fetch('/api/wall/letter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      right:   letterState.right,
+      company: letterState.company,
+      name:    letterState.name,
+      sector:  letterState.sector,
+      context: letterState.context,
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('letterBtn').disabled = false;
+    if (data.error) {
+      document.getElementById('letterResult').innerHTML = `
+        <div class="wall-empty"><div class="wall-empty-text">${data.error}</div></div>`;
+      return;
+    }
+    letterState.result = data;
+    renderLetterResult(data);
+  })
+  .catch(() => {
+    document.getElementById('letterBtn').disabled = false;
+    document.getElementById('letterResult').innerHTML = `
+      <div class="wall-empty"><div class="wall-empty-text">Letter generation failed. Please try again.</div></div>`;
+  });
+}
+
+function renderLetterResult(data) {
+  const el = document.getElementById('letterResult');
+  el.innerHTML = `
+    <div class="wall-mini-panel">
+      <h4>Your demand letter — ready to send</h4>
+      <div class="letter-preview" id="letterText">${(data.letter || '').replace(/\n/g,'<br>')}</div>
+      ${data.citations ? `<div class="letter-citations">Grounded in: ${data.citations}</div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <button class="wall-btn-primary" onclick="downloadLetter()">Download .txt ↗</button>
+        <button class="wall-btn-ghost" onclick="generateSwahili()">Swahili version</button>
+        <button class="wall-btn-ghost" onclick="copyLetter()">Copy to clipboard</button>
+      </div>
+    </div>
+    ${waBand('Send via WhatsApp to share with a trusted person or your lawyer.')}`;
+}
+
+function downloadLetter() {
+  if (!letterState.result) return;
+  const blob = new Blob([letterState.result.letter], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `dapa_demand_letter_${letterState.company.replace(/\s+/g,'_')}.txt`;
+  a.click();
+}
+
+function copyLetter() {
+  const el = document.getElementById('letterText');
+  if (!el) return;
+  navigator.clipboard.writeText(el.innerText);
+}
+
+function generateSwahili() {
+  if (!letterState.result) return;
+  document.getElementById('letterResult').innerHTML = loadingHTML('Translating to Swahili…');
+  fetch('/api/wall/letter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...letterState, language: 'swahili' })
+  })
+  .then(r => r.json())
+  .then(data => { letterState.result = data; renderLetterResult(data); })
+  .catch(() => {});
+}
+
+/* ── BREACH CHECKER ─────────────────────────────────────── */
+function renderBreach(area) {
+  area.innerHTML = `
+    ${sectionHeader('Breach checker', 'Is this company on record?',
+      'Search any company against the ODPC corpus. If they have a determination on record, you can see what for — and whether you may be affected.'
+    )}
+    <div class="situation-box">
+      <div class="sit-chips-label">Enter a company name</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input class="wall-input" id="breachInput" placeholder="Company name here…"
+          onkeydown="if(event.key==='Enter') doBreach()">
+        <button class="wall-btn-primary" onclick="doBreach()">Check ↗</button>
+      </div>
+    </div>
+    <div id="breachResult"></div>`;
+}
+
+function doBreach() {
+  const q = document.getElementById('breachInput').value.trim();
+  if (!q) return;
+  document.getElementById('breachResult').innerHTML = loadingHTML('Checking …');
+
+  fetch(`/api/wall/breach?q=${encodeURIComponent(q)}`)
+    .then(r => r.json())
+    .then(data => renderBreachResult(data, q))
+    .catch(() => {
+      document.getElementById('breachResult').innerHTML = `
+        <div class="wall-empty"><div class="wall-empty-text">Check failed. Please try again.</div></div>`;
+    });
+}
+
+function renderBreachResult(data, q) {
+  const el = document.getElementById('breachResult');
+  const results = data.results || [];
+
+  if (results.length === 0) {
+    el.innerHTML = `<div class="wall-empty">
+      <div class="wall-empty-glyph">◎</div>
+      <div class="wall-empty-text">No ODPC determinations found for "${q}". This may mean no cases have been filed, or the company trades under a different name.</div>
+    </div>`;
+    return;
+  }
+
+  const cards = results.map((c, i) => `
+    <div class="prec-card ${outcomeClass(c.outcome_type)}" style="animation-delay:${i*60}ms">
+      <div style="min-width:0">
+        <a href="/case/${c.id}" class="prec-title">${c.title}</a>
+        <div class="prec-meta">${[c.sector, c.date, c.case_ref].filter(Boolean).join(' · ')}</div>
+        ${c.summary ? `<div class="prec-summary">${c.summary}</div>` : ''}
+      </div>
+      <div style="flex-shrink:0">${outcomeBadge(c.outcome_type, c.quantum)}</div>
+    </div>`).join('');
+
+  el.innerHTML = `
+    <div class="breach-result">
+      <div class="breach-result-header">${results.length} determination${results.length!==1?'s':''} on record — ${q}</div>
+      <div class="precedent-zone">${cards}</div>
+      <div class="breach-result-cta">
+        If you are a current or former customer of ${q} and believe your data was handled unlawfully,
+        you may have grounds to file a complaint.
+        <span class="cta-link" onclick="goToSection('file')">How to file with the ODPC →</span>
+      </div>
+    </div>`;
+}
+
+/* ── DSR LINGO ──────────────────────────────────────────── */
+let glossaryData = null;
+let glossaryFilter = '';
+
+function renderLingo(area) {
+  area.innerHTML = `
+    ${sectionHeader('DSR lingo', 'Plain-English glossary',
+      'Every term defined in real ODPC cases — in plain English and Swahili. Sourced directly from the /dapa corpus.'
+    )}
+    <div class="situation-box" style="padding:14px 18px">
+      <input class="wall-input" id="glossarySearch" placeholder="Search terms…"
+        oninput="filterGlossary(this.value)">
+    </div>
+    <div id="glossaryZone">${loadingHTML('Loading glossary…')}</div>`;
+
+  if (glossaryData) {
+    renderGlossaryItems(glossaryData);
+  } else {
+    fetch('/api/wall/glossary')
+      .then(r => r.json())
+      .then(data => {
+        glossaryData = data.terms || [];
+        renderGlossaryItems(glossaryData);
+      })
+      .catch(() => {
+        document.getElementById('glossaryZone').innerHTML = `
+          <div class="wall-empty"><div class="wall-empty-text">Glossary unavailable.</div></div>`;
+      });
+  }
+}
+
+function filterGlossary(q) {
+  glossaryFilter = q.toLowerCase();
+  if (!glossaryData) return;
+  renderGlossaryItems(glossaryData);
+}
+
+function renderGlossaryItems(terms) {
+  const el = document.getElementById('glossaryZone');
+  if (!el) return;
+
+  const filtered = glossaryFilter
+    ? terms.filter(t =>
+        t.term.toLowerCase().includes(glossaryFilter) ||
+        (t.definition || '').toLowerCase().includes(glossaryFilter))
+    : terms;
+
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="wall-empty">
+      <div class="wall-empty-glyph">◎</div>
+      <div class="wall-empty-text">No terms matched "${glossaryFilter}".</div>
+    </div>`;
+    return;
+  }
+
+  const catClass = {
+    'legal': 'cat-legal', 'system': 'cat-system',
+    'procedural': 'cat-procedural', 'regulatory': 'cat-regulatory',
+    'product': 'cat-product',
+  };
+
+  el.innerHTML = `<div class="glossary-list">
+    ${filtered.map((t, i) => `
+      <div class="glossary-item" style="animation-delay:${i*20}ms">
+        <div>
+          <div class="glossary-term">${t.term}</div>
+          <div class="glossary-def">${t.definition}</div>
+        </div>
+        <span class="glossary-cat ${catClass[t.category] || 'cat-product'}">${t.category || '—'}</span>
+      </div>`).join('')}
+  </div>`;
+}
+
+/* ── DID YOU KNOW ───────────────────────────────────────── */
+function renderDyk(area) {
+  area.innerHTML = `
+    ${sectionHeader('Did you know?', 'Corpus insights for citizens',
+      'Facts drawn directly from ODPC determinations. Every number here is traceable to a real case.'
+    )}
+    <div id="dykZone">${loadingHTML('Loading insights…')}</div>`;
+
+  fetch('/api/wall/dyk')
+    .then(r => r.json())
+    .then(data => renderDykItems(data.insights || []))
+    .catch(() => renderDykItems(FALLBACK_DYK));
+}
+
+// No hardcoded fallback — all DYK facts computed live from /api/wall/dyk.
+// If the API fails, renderDykItems receives [] and shows the empty state.
+const FALLBACK_DYK = [];
+
+function renderDykItems(insights) {
+  const el = document.getElementById('dykZone');
+  if (!el) return;
+  const items = insights || [];
+  if (!items.length) {
+    el.innerHTML = '<div class="wall-empty"><div class="wall-empty-glyph">◎</div>' +
+      '<div class="wall-empty-text">No corpus insights loaded yet. Run corpus_insights_seed.py after ingestion to populate this panel.</div></div>';
+    return;
+  }
+
+  const statsRow = `
+    <div class="wall-stats-row">
+      <div class="wall-stat">
+        <div class="wall-stat-num">${corpusStats.total_cases || '—'}</div>
+        <div class="wall-stat-label">Determinations indexed</div>
+      </div>
+      <div class="wall-stat">
+        <div class="wall-stat-num">${corpusStats.sectors || '—'}</div>
+        <div class="wall-stat-label">Sectors covered</div>
+      </div>
+      <div class="wall-stat">
+        <div class="wall-stat-num">${corpusStats.year_range || '—'}</div>
+        <div class="wall-stat-label">Year range</div>
+      </div>
+    </div>`;
+
+  el.innerHTML = statsRow + items.map((item, i) => `
+    <div class="dyk-card" style="animation-delay:${i*80}ms">
+      <i class="ti ti-bulb dyk-icon" aria-hidden="true"></i>
+      <div class="dyk-body">
+        <div class="dyk-fact">${item.fact}</div>
+        ${item.source ? `<div class="dyk-source">${item.source}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+/* ── FILE A COMPLAINT ───────────────────────────────────── */
+function renderFile(area) {
+  area.innerHTML = `
+    ${sectionHeader('File a complaint', 'How to complain to the ODPC',
+      'Step-by-step guide grounded in the Enforcement Regulations 2021. Free to file. No lawyer required. Median processing time: 94 days.'
+    )}
+    <div class="filing-steps">
+      <div class="filing-step">
+        <div class="step-num">01</div>
+        <div>
+          <div class="step-title">Contact the company first</div>
+          <div class="step-body">
+            Send a written request to the company's Data Protection Officer demanding they action your right.
+            Keep a copy — the ODPC considers whether you tried to resolve this directly before filing.
+            It strengthens your case.
+            <span class="step-highlight" onclick="goToSection('letter')"> Generate that letter →</span>
+          </div>
+        </div>
+      </div>
+      <div class="filing-step">
+        <div class="step-num">02</div>
+        <div>
+          <div class="step-title">Gather your evidence</div>
+          <div class="step-body">
+            Collect screenshots, emails, SMS messages, app notifications, loan agreements, or any record
+            showing: (a) the data was processed, (b) you requested action, and (c) the company failed to respond.
+            The stronger your evidence of a specific breach date, the stronger your complaint.
+          </div>
+        </div>
+      </div>
+      <div class="filing-step">
+        <div class="step-num">03</div>
+        <div>
+          <div class="step-title">File at odpc.go.ke</div>
+          <div class="step-body">
+            Use the ODPC online complaint portal at <a href="https://odpc.go.ke" target="_blank" rel="noopener">odpc.go.ke</a>.
+            Your complaint reference number (ODPC/COMP/XXXX/YYYY) is issued immediately.
+            There is no filing fee. You can file in English or Swahili.
+          </div>
+        </div>
+      </div>
+      <div class="filing-step">
+        <div class="step-num">04</div>
+        <div>
+          <div class="step-title">The ODPC notifies the respondent</div>
+          <div class="step-body">
+            Under Regulation 11 of the Enforcement Regulations 2021, the ODPC must notify the respondent
+            of the complaint. The respondent has a set period to respond. If they fail to respond at all,
+            the ODPC may enter a default finding in your favour.
+          </div>
+        </div>
+      </div>
+      <div class="filing-step">
+        <div class="step-num">05</div>
+        <div>
+          <div class="step-title">The determination</div>
+          <div class="step-body">
+            Most cases are decided on papers only — no court appearance, no hearing.
+            The median time from complaint to determination in the /dapa corpus is approximately 94 days.
+            If the ODPC finds in your favour, it can order compensation, an enforcement notice,
+            or recommend prosecution.
+          </div>
+        </div>
+      </div>
+    </div>
+    ${waBand('Need help navigating the process in Swahili? Send your situation on WhatsApp.')}`;
+}
+
+/*───────────────────────────  JS ─────────────────*/
+let dsrStats = null;
+function fetchDsrStats() {
+  if (dsrStats) return Promise.resolve(dsrStats);
+  return fetch('/api/wall/dsr-stats').then(r => r.json()).then(d => { dsrStats = d; return d; }).catch(() => null);
+}
+
+function buildDsrStatsNote() {
+  if (!dsrStats || !dsrStats.total) {
+    return 'The ODPC treats prior disregard of a data subject rights request as an aggravating factor in its determinations.';
+  }
+  const comparison = (dsrStats.avg_award_flagged && dsrStats.avg_award_unflagged)
+    ? ` Cases carrying this flag averaged KES ${Number(dsrStats.avg_award_flagged).toLocaleString()} in compensation, versus KES ${Number(dsrStats.avg_award_unflagged).toLocaleString()} without it.`
+    : '';
+  return `In the /dapa corpus, <strong style="color:var(--cg-deep)">${dsrStats.pct_flagged}%</strong> of determinations carry the
+    <strong style="color:var(--cg-deep)">dsr_laziness_flag</strong> — the ODPC's own marker for this exact pattern.${comparison}`;
+}
+
+async function assessChecker() {
+  const { request, response } = checkerState;
+  if (!request || !response) {
+    document.getElementById('checkerResult').innerHTML = `
+      <div class="wall-empty"><div class="wall-empty-glyph">◎</div>
+      <div class="wall-empty-text">Select one option from each column first.</div></div>`;
+    return;
+  }
+  const el = document.getElementById('checkerResult');
+
+  if (response === 'complied') {
+    el.innerHTML = `<div class="checker-result negative">
+      <div class="checker-result-title">No violation — company complied</div>
+      <div class="checker-result-body">Your rights request was actioned. If the response was slow or partial, you still have grounds to request confirmation. If any data was left uncorrected or undeleted, <span class="step-highlight" onclick="goToSection('file')">file a complaint →</span></div>
+    </div>`;
+    return;
+  }
+
+  const verdicts = {
+    no_response:    'This is a clear violation. The ODPC has ruled against respondents for exactly this in multiple determinations in the corpus.',
+    delayed:        'Likely a violation. The ODPC treats unreasonable delay as a failure to action a DSR. 30+ days without response has been treated as non-compliance.',
+    refused:        'Likely a violation. Refusal requires a lawful justification. An unexplained refusal has been treated as unlawful in multiple determinations.',
+    agreed_ignored: 'Strong violation signal. Agreeing to comply then taking no action has attracted the harshest ODPC language in the corpus — it demonstrates bad faith.',
+  };
+
+  await fetchDsrStats();
+  const statsNote = buildDsrStatsNote();
+
+  el.innerHTML = `<div class="checker-result">
+    <div class="checker-result-title">This likely qualifies as a DSR violation</div>
+    <div class="checker-result-body">
+      ${verdicts[response]} ${statsNote}<br><br>
+      <strong style="color:var(--cg-deep)">Suggested next steps:</strong><br>
+      1. <span class="step-highlight" onclick="goToSection('letter')">Write a formal demand letter →</span><br>
+      2. If no response within 14 days, <span class="step-highlight" onclick="goToSection('file')">file with the ODPC →</span>
+    </div>
+  </div>`;
+}
+
+/* ── UTILITIES ───────────────────────────────────────────── */
+function goToSection(name) {
+  document.querySelectorAll('.wall-nav-item').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`[data-section="${name}"]`);
+  if (btn) btn.classList.add('active');
+  renderSection(name);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goToLetter(btnOrTitle) {
+  const title = (typeof btnOrTitle === 'string') ? btnOrTitle : btnOrTitle.dataset.title;
+  letterState.context = 'Based on precedent: ' + (title || '');
+  goToSection('letter');
+}
+
+function openWhatsApp() {
+  window.open('https://wa.me/254700000000?text=Habari%2C%20ninataka%20kujua%20haki%20zangu%20za%20ulinzi%20wa%20data.', '_blank');
+}
+
+/* ── BOOT ───────────────────────────────────────────────── */
+// Wire nav buttons
+document.querySelectorAll('.wall-nav-item').forEach(function(btn) {
+  btn.addEventListener('click', function () { wallNav(btn); });
+});
+
+// Keyboard navigation within the action area
+// Tab moves focus normally between interactive elements
+// Arrow keys move between sidebar nav items
+document.addEventListener('keydown', function(e) {
+  const btns = Array.from(document.querySelectorAll('.wall-nav-item'));
+  const active = document.querySelector('.wall-nav-item.active');
+  const idx = btns.indexOf(active);
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    const next = btns[idx + 1] || btns[0];
+    wallNav(next);
+    next.focus();
+  } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+    e.preventDefault();
+    const prev = btns[idx - 1] || btns[btns.length - 1];
+    wallNav(prev);
+    prev.focus();
+  }
+});
+
+// Set ask active and render initial content
+const _firstBtn = document.querySelector('[data-section="ask"]');
+if (_firstBtn) _firstBtn.classList.add('active');
+renderSection('ask');
+</script>
+{% endblock %}

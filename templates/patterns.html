@@ -1,0 +1,1387 @@
+{% extends "base.html" %}
+
+{% block title %}Observe Patterns{% endblock %}
+{% block meta_description %}Cross-case analysis of enforcement patterns, quantum trends, section frequencies, processing timelines and citation relationships across the ODPC corpus.{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ═══════════════════════════════════════════════════════════
+     PATTERNS PAGE — LAYOUT
+  ═══════════════════════════════════════════════════════════ */
+
+  .pat-wrapper {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: calc(100vh - 56px - 56px);
+  }
+
+  /* ── LEFT NAV ──────────────────────────────────────────── */
+  .pat-nav {
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+
+  .pat-nav-section {
+    padding: 0 16px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  .pat-nav-heading {
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--earth-warm);
+    padding: 8px 4px 6px;
+  }
+
+  .pat-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 10px;
+    font-family: var(--font-mono);
+    font-size: 0.63rem;
+    letter-spacing: 0.04em;
+    color: var(--parchment);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.18s;
+    text-align: left;
+    margin-bottom: 2px;
+  }
+
+  .pat-nav-btn:hover {
+    color: var(--cg-bright);
+    background: rgba(0,229,160,0.04);
+    border-color: rgba(0,229,160,0.15);
+  }
+
+  .pat-nav-btn.active {
+    color: var(--cg-bright);
+    background: rgba(0,229,160,0.06);
+    border-color: var(--cg-mid);
+  }
+
+  .pat-nav-btn:focus-visible {
+    outline: 2px solid var(--cg-bright);
+    outline-offset: 2px;
+  }
+
+  .pat-nav-icon {
+    font-size: 1rem;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.75;
+  }
+
+  .pat-nav-label { flex: 1; line-height: 1.3; }
+
+  /* ── ACTION AREA ───────────────────────────────────────── */
+  .pat-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* Page header */
+  .pat-header {
+    padding: 28px 40px 20px;
+    border-bottom: 1px solid var(--border);
+    background:
+      radial-gradient(ellipse 60% 80% at 100% -10%, rgba(0,229,160,0.04) 0%, transparent 60%),
+      var(--bg);
+  }
+
+  .pat-header p {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--parchment);
+    opacity: 0.75;
+    margin-top: 4px;
+    max-width: 600px;
+    line-height: 1.7;
+  }
+
+  /* Chart panel — the action area */
+  .pat-panel {
+    flex: 1;
+    padding: 36px 40px 48px;
+    animation: patFadeIn 0.25s ease both;
+    min-height: 500px;
+  }
+
+  @keyframes patFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Idle state */
+  .pat-idle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 420px;
+    gap: 16px;
+    opacity: 0.4;
+    text-align: center;
+  }
+
+  .pat-idle .glyph { font-size: 2.8rem; }
+
+  .pat-idle p {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--earth-warm);
+    max-width: 300px;
+    line-height: 1.75;
+  }
+
+  /* Loading state */
+  .pat-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 420px;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--earth-warm);
+  }
+
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--cg-bright);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── CHART CONTAINER ───────────────────────────────────── */
+  .chart-wrap {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+  }
+
+  .chart-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--pitch-black); /*var(--cream);*/
+    margin-bottom: 4px;
+  }
+
+  .chart-subtitle {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--earth-warm);
+    letter-spacing: 0.06em;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .chart-canvas-wrap {
+    position: relative;
+    width: 100%;
+  }
+
+  /* Insight callout — a key finding below each chart */
+  .chart-insight {
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: rgba(0,229,160,0.04);
+    border-left: 2px solid var(--cg-deep);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--parchment);
+    line-height: 1.65;
+    border-radius: 0 2px 2px 0;
+  }
+
+  .chart-insight strong { color: var(--cg-bright); }
+
+  /* No-data notice */
+  .chart-no-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--earth-warm);
+    opacity: 0.6;
+    font-style: italic;
+  }
+
+  /* ── D3 CITATION GRAPH ─────────────────────────────────── */
+  #citationGraphSvg {
+    width: 100%;
+    height: 480px;
+    border-radius: 3px;
+    background: var(--bg-panel);
+  }
+
+  .node circle {
+    stroke-width: 1.5px;
+    cursor: pointer;
+    transition: r 0.15s;
+    opacity: 5.0;
+  }
+
+  .node circle:hover { r: 10; }
+
+  .node text {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    fill: var(--parchment);
+    pointer-events: none;
+  }
+
+  .link {
+    stroke: var(--accent-cyan); /*rgba(196,154,108,0.25);*/
+    stroke-width: 1px;
+  }
+
+  .graph-tooltip {
+    position: absolute;
+    background: var(--glass-glow);
+    border: 1px solid var(--border-cg);
+    border-radius: 3px;
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--cream);
+    pointer-events: none;
+    max-width: 220px;
+    z-index: 10;
+    line-height: 1.6;
+    display: none;
+  }
+
+  /* ── TIMELINE GRID — two charts side by side ───────────── */
+  .chart-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  /* ── KEYBOARD NAV HINT ─────────────────────────────────── */
+  .pat-kbd-hint {
+    padding: 6px 40px;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--earth-warm);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-panel);
+    opacity: 0.7;
+  }
+
+  @media (max-width: 860px) {
+    .pat-wrapper { grid-template-columns: 1fr; }
+    .pat-nav {
+      position: static;
+      height: auto;
+      flex-direction: row;
+      flex-wrap: wrap;
+      padding: 12px;
+      gap: 4px;
+    }
+    .pat-nav-section { border: none; padding: 0; margin: 0; }
+    .pat-nav-heading { display: none; }
+    .pat-nav-btn { padding: 6px 10px; font-size: 0.58rem; }
+    .chart-grid-2 { grid-template-columns: 1fr; }
+    .pat-header, .pat-panel { padding: 20px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="pat-kbd-hint" aria-hidden="true">
+  ↑ ↓ arrow keys navigate panels · Enter to select
+</div>
+
+<div class="pat-wrapper">
+
+  {# ══ LEFT NAV ════════════════════════════════════════════ #}
+  <nav class="pat-nav" aria-label="Patterns navigation" id="patNav">
+
+    <div class="pat-nav-section">
+      <div class="pat-nav-heading">Enforcement</div>
+      <button class="pat-nav-btn" data-panel="quantum"
+              onclick="showPanel('quantum')" tabindex="0">
+        <span class="pat-nav-icon">◈</span>
+        <span class="pat-nav-label">Quantum by Sector</span>
+      </button>
+      <button class="pat-nav-btn" data-panel="enforcement"
+              onclick="showPanel('enforcement')" tabindex="0">
+        <span class="pat-nav-icon">⚑</span>
+        <span class="pat-nav-label">Enforcement Notice Rate</span>
+      </button>
+      <button class="pat-nav-btn" data-panel="outcomes"
+              onclick="showPanel('outcomes')" tabindex="0">
+        <span class="pat-nav-icon">◉</span>
+        <span class="pat-nav-label">Outcomes by Sector</span>
+      </button>
+    </div>
+
+    <div class="pat-nav-section">
+      <div class="pat-nav-heading">Legislation</div>
+      <button class="pat-nav-btn" data-panel="sections"
+              onclick="showPanel('sections')" tabindex="0">
+        <span class="pat-nav-icon">§</span>
+        <span class="pat-nav-label">Sections Frequency</span>
+      </button>
+      <button class="pat-nav-btn" data-panel="layers"
+              onclick="showPanel('layers')" tabindex="0">
+        <span class="pat-nav-icon">◫</span>
+        <span class="pat-nav-label">Breach Layer Profile</span>
+      </button>
+    </div>
+
+    <div class="pat-nav-section">
+      <div class="pat-nav-heading">Timelines</div>
+      <button class="pat-nav-btn" data-panel="volume"
+              onclick="showPanel('volume')" tabindex="0">
+        <span class="pat-nav-icon">▲</span>
+        <span class="pat-nav-label">Case Volume over Time</span>
+      </button>
+      <button class="pat-nav-btn" data-panel="speed"
+              onclick="showPanel('speed')" tabindex="0">
+        <span class="pat-nav-icon">◷</span>
+        <span class="pat-nav-label">ODPC Processing Speed</span>
+      </button>
+      <button class="pat-nav-btn" data-panel="latency"
+              onclick="showPanel('latency')" tabindex="0">
+        <span class="pat-nav-icon">⊙</span>
+        <span class="pat-nav-label">Victim Latency</span>
+      </button>
+    </div>
+
+    <div class="pat-nav-section">
+      <div class="pat-nav-heading">Corpus Intelligence</div>
+      <button class="pat-nav-btn" data-panel="citations"
+              onclick="showPanel('citations')" tabindex="0">
+        <span class="pat-nav-icon">⬡</span>
+        <span class="pat-nav-label">Citation Graph</span>
+      </button>
+      <button class="pat-nav-btn" data-panel="dsr"
+              onclick="showPanel('dsr')" tabindex="0">
+        <span class="pat-nav-icon">◯</span>
+        <span class="pat-nav-label">DSR Laziness by Sector</span>
+      </button>
+    </div>
+
+  </nav>
+
+  {# ══ ACTION AREA ══════════════════════════════════════════ #}
+  <div class="pat-main">
+
+    <div class="pat-header">
+      <p class="page-eyebrow">Patterns</p>
+      <h1 class="page-title">Observe Patterns</h1>
+      <p>Cross-case analysis of incident types, system failure layers, legislative citation frequency,
+         quantum trajectory, and enforcement escalation. Derived from the ODPC determinations corpus.</p>
+    </div>
+
+    <div id="patPanel" class="pat-panel">
+      <div class="pat-idle">
+        <div class="glyph">◎</div>
+        <p>Select a pattern from the left panel to begin exploring the corpus.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{# ── Graph tooltip (shared, positioned by JS) ── #}
+<div class="graph-tooltip" id="graphTooltip"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+{# Chart.js from CDN — only loaded on this page #}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{# D3 v7 for citation graph only #}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   PATTERNS.HTML — MAIN JS
+   Architecture:
+   - One fetch('/api/patterns/data') on page load.
+   - All charts are Chart.js rendered into <canvas> elements.
+   - Citation graph is D3 force-directed in an <svg>.
+   - Panel switching destroys and recreates canvas to avoid
+     Chart.js "canvas already in use" errors.
+   - Keyboard navigation: arrow keys move between nav buttons.
+═══════════════════════════════════════════════════════════ */
+
+  /* ── DESIGN TOKENS (match pweza.css) ─────────────────────── */
+  const T = {
+    cream:       '#F5F0E8',
+    parchment:   '#D9D0BC',
+    earthLight:  '#C49A6C',
+    earthWarm:   '#8B5E3C',
+    cgBright:    '#00E5A0',
+    cgMid:       '#00C47A',
+    cgDeep:      '#007A4D',
+    amber:       '#F5A623',
+    red:         '#E63030',
+    blue:        '#1A6EFF',
+    bgPanel:     '#2D2114',
+    bgCard:      '#362819',
+    pitchBlack:  '#000000',
+    green:	 '#008000',
+    maroon:	 '#800000',
+    rosybrown:	 '#BC8F8F',		
+    border:      'rgba(196,154,108,0.16)',
+  };
+
+  // Sector colour palette — consistent across all charts
+  const SECTOR_COLOURS = [
+    '#00E5A0','#00C47A','#F5A623','#1A6EFF','#E63030',
+    '#C49A6C','#8B5E3C','#A855F7','#06B6D4','#84CC16',
+    '#F43F5E','#FB923C','#FBBF24','#34D399','#60A5FA',
+    '#818CF8','#F472B6','#A3E635','#4ADE80',
+  ];
+
+  // Chart.js global defaults
+  Chart.defaults.color           = T.parchment;
+  Chart.defaults.borderColor     = T.border;
+  Chart.defaults.font.family     = "'IBM Plex Mono', monospace";
+  Chart.defaults.font.color	 = T.pitchBlack;
+  Chart.defaults.font.size       = 11;
+
+  /* ── STATE ────────────────────────────────────────────────── */
+  let patternData   = null;
+  let activePanel   = null;
+  let activeChart   = null;   // current Chart.js instance
+  let dataLoaded    = false;
+
+  /* ── LOAD DATA ────────────────────────────────────────────── */
+  const panel = document.getElementById('patPanel');
+
+  panel.innerHTML = `<div class="pat-loading"><div class="spinner"></div>Loading corpus data…</div>`;
+
+  fetch('/api/patterns/data')
+    .then(r => r.json())
+    .then(data => {
+      patternData = data;
+      dataLoaded  = true;
+      panel.innerHTML = `
+        <div class="pat-idle">
+          <div class="glyph">◎</div>
+          <p>Select a pattern from the left panel to begin exploring the corpus.</p>
+        </div>`;
+    })
+    .catch(() => {
+      panel.innerHTML = `
+        <div class="pat-idle" style="opacity:0.7;">
+          <div class="glyph">⚠</div>
+          <p style="color:var(--alert-red)">Failed to load corpus data. Ensure the database is initialised and determinations have been ingested.</p>
+        </div>`;
+    });
+
+  /* ── PANEL SWITCHER ───────────────────────────────────────── */
+  function showPanel(name) {
+    if (!dataLoaded) return;
+
+    activePanel = name;
+
+    // Update nav button states
+    document.querySelectorAll('.pat-nav-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.panel === name);
+      b.setAttribute('aria-selected', b.dataset.panel === name ? 'true' : 'false');
+    });
+
+    // Destroy any existing Chart.js instance to avoid canvas reuse error
+    if (activeChart) { activeChart.destroy(); activeChart = null; }
+
+    // Animate panel in
+    panel.style.animation = 'none';
+    panel.offsetHeight;
+    panel.style.animation = '';
+
+    const renders = {
+      quantum:     renderQuantum,
+      enforcement: renderEnforcement,
+      outcomes:    renderOutcomes,
+      sections:    renderSections,
+      layers:      renderLayers,
+      volume:      renderVolume,
+      speed:       renderSpeed,
+      latency:     renderLatency,
+      citations:   renderCitations,
+      dsr:         renderDsr,
+    };
+
+    if (renders[name]) renders[name]();
+  }
+
+  /* ── HELPERS ──────────────────────────────────────────────── */
+  function makeCanvas(id) {
+    // Wipe the panel and insert a fresh canvas
+    panel.innerHTML = `
+      <div class="chart-wrap" id="chartWrap">
+        <div class="chart-canvas-wrap">
+          <canvas id="${id}"></canvas>
+        </div>
+        <div class="chart-insight" id="chartInsight"></div>
+      </div>`;
+    return document.getElementById(id);
+  }
+
+  function makeCanvasWithHeader(id, title, subtitle) {
+    panel.innerHTML = `
+      <div class="chart-wrap">
+        <div class="chart-title">${title}</div>
+        <div class="chart-subtitle">${subtitle}</div>
+        <div class="chart-canvas-wrap">
+          <canvas id="${id}"></canvas>
+        </div>
+        <div class="chart-insight" id="chartInsight"></div>
+      </div>`;
+    return document.getElementById(id);
+  }
+
+  function setInsight(html) {
+    const el = document.getElementById('chartInsight');
+    if (el) el.innerHTML = html;
+  }
+
+  function noData(msg) {
+    panel.innerHTML = `<div class="chart-no-data">${msg || 'No data available yet for this visualisation.'}</div>`;
+  }
+
+  function fmt(n) { return Number(n).toLocaleString(); }
+  function fmtK(n) {
+    if (!n) return '0';
+    if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+    if (n >= 1000)    return (n/1000).toFixed(0) + 'K';
+    return fmt(n);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     1. QUANTUM BY SECTOR
+     Horizontal bar — sector on Y, avg quantum on X,
+     max quantum as a secondary dataset (lighter bar behind).
+  ══════════════════════════════════════════════════════════ */
+  function renderQuantum() {
+    const d = patternData.quantum_by_sector;
+    if (!d || !d.length) return noData();
+
+    const canvas = makeCanvasWithHeader('quantumChart',
+      'Compensation Awards by Sector',
+      'Average and maximum quantum (KES) awarded per determination · sorted by average award'
+    );
+
+    const labels  = d.map(r => r.sector);
+    const avgs    = d.map(r => r.avg_quantum || 0);
+    const maxes   = d.map(r => r.max_quantum || 0);
+    const counts  = d.map(r => r.case_count  || 0);
+
+    activeChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Max Award (KES)',
+            data: maxes,
+            backgroundColor: 'rgba(0,229,160,0.12)',
+            borderColor: 'rgba(0,229,160,0.35)',
+            borderWidth: 1,
+            borderRadius: 2,
+          },
+          {
+            label: 'Avg Award (KES)',
+            data: avgs,
+            backgroundColor: d.map((_, i) => SECTOR_COLOURS[i % SECTOR_COLOURS.length] + 'CC'),
+            borderColor:     d.map((_, i) => SECTOR_COLOURS[i % SECTOR_COLOURS.length]),
+            borderWidth: 1,
+            borderRadius: 2,
+          },
+        ],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+          legend: { position: 'top', labels: { color: T.pitchBlack } },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = d[ctx.dataIndex];
+                if (ctx.datasetIndex === 1)
+                  return ` Avg: KES ${fmt(ctx.raw)}  (${r.case_count} cases)`;
+                return ` Max: KES ${fmt(ctx.raw)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              callback: v => 'KES ' + fmtK(v),
+              color: T.earthLight,
+            },
+            grid: { color: T.earthLight },
+          },
+          y: {
+            ticks: { color: T.pitchBlack },
+            grid: { display: false },
+          },
+        },
+      },
+    });
+
+    // Compute insight
+    const top = d[0];
+    const totalQ = d.reduce((s, r) => s + (r.avg_quantum * r.case_count || 0), 0);
+    setInsight(`<strong>${top.sector}</strong> has the highest average award at
+      <strong>KES ${fmt(top.avg_quantum)}</strong> across ${top.case_count} cases.
+      Total corpus quantum across these sectors: <strong>KES ${fmtK(totalQ)}</strong>.`);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     2. ENFORCEMENT NOTICE RATE BY SECTOR
+     Sorted horizontal bar — pct on X, sector on Y.
+     EN count annotated.
+  ══════════════════════════════════════════════════════════ */
+  function renderEnforcement() {
+    const d = patternData.enforcement_rate;
+    if (!d || !d.length) return noData();
+
+    const filtered = d.filter(r => r.total > 0);
+    if (!filtered.length) return noData('No enforcement notice data recorded yet.');
+
+    const canvas = makeCanvasWithHeader('enforcementChart',
+      'Enforcement Notice Rate by Sector',
+      '% of determinations resulting in an Enforcement Notice · sectors with at least one EN shown'
+    );
+
+    const withEN = filtered.filter(r => r.en_count > 0)
+                            .sort((a,b) => b.pct - a.pct);
+
+    if (!withEN.length) return noData('No Enforcement Notices recorded in the current corpus.');
+
+    activeChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: withEN.map(r => r.sector),
+        datasets: [{
+          label: 'EN Rate (%)',
+          data: withEN.map(r => r.pct),
+          backgroundColor: withEN.map(r =>
+            r.pct > 50 ? T.red + 'CC' : r.pct > 30 ? T.amber + 'CC' : T.cgMid + 'CC'
+          ),
+          borderColor: withEN.map(r =>
+            r.pct > 50 ? T.red : r.pct > 30 ? T.amber : T.cgMid
+          ),
+          borderWidth: 1,
+          borderRadius: 2,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = withEN[ctx.dataIndex];
+                return ` ${r.pct}% — ${r.en_count} EN${r.en_count !== 1 ? 's' : ''} from ${r.total} cases`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            max: 100,
+            ticks: { callback: v => v + '%', color: T.earthLight },
+            grid: { color: T.earthLight },
+          },
+          y: {
+            ticks: { color: T.pitchBlack },
+            grid: { display: false },
+          },
+        },
+      },
+    });
+
+    const top = withEN[0];
+    setInsight(`<strong>${top.sector}</strong> has the highest enforcement notice rate at
+      <strong>${top.pct}%</strong> — ${top.en_count} notices issued from ${top.total} determinations.
+      Colour: <span style="color:${T.red}">red = >50%</span> ·
+      <span style="color:${T.amber}">amber = 30–50%</span> ·
+      <span style="color:${T.cgMid}">green = <30%</span>.`);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     3. OUTCOMES BY SECTOR — stacked horizontal bar
+  ══════════════════════════════════════════════════════════ */
+  function renderOutcomes() {
+    const d = patternData.outcomes_by_sector;
+    if (!d || !d.length) return noData();
+
+    // Pivot: { sector → { outcome_type → count } }
+    const outcomeTypes = [...new Set(d.map(r => r.outcome_type))];
+    const sectors      = [...new Set(d.map(r => r.sector))];
+    const pivot        = {};
+    sectors.forEach(s => { pivot[s] = {}; });
+    d.forEach(r => { pivot[r.sector][r.outcome_type] = r.count; });
+
+    const outcomeColours = {
+      'Compensation Only':         '#22C55E',
+      'Enforcement Notice':   '#F97316',
+      'Compensation & Enforcement Notice':  '#EC4899',
+      'Compensation & Prosecution Recommended': '#A21CAF', 
+      'Dismissed':            '#6B7280',
+      'Resolved':             '#14B8A6',
+      'Penalty Notice': 	'#B91C1C',
+      'Prosecution Recommended': '#EF4444',
+      'Conditional Enforcement Notice':	'#EA580C',
+      'Compensation & Conditional Enforcement Notice':	'#D946EF',
+      'Compensation & Enforcement Notice & Prosecution Recommended':	'#7C3AED',
+      'Compensation & Cease-Use Order':   '#A855F7',
+      'Compensation & Direct Order': '#FFFFFF',		  
+    };
+
+    const canvas = makeCanvasWithHeader('outcomesChart',
+      'Outcome Distribution by Sector',
+      'Stacked breakdown of Compensations, Enforcement notices, Dismissals and Other Outcomes'
+    );
+
+    activeChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: sectors,
+        datasets: outcomeTypes.map(ot => ({
+          label: ot.replace(/_/g, ' '),
+          data: sectors.map(s => pivot[s][ot] || 0),
+          backgroundColor: (outcomeColours[ot] || T.earthWarm) + 'CC',
+          borderColor:      outcomeColours[ot] || T.earthWarm,
+          borderWidth: 1,
+        })),
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: T.pitchBlack, boxWidth: 12 },
+          },
+        },
+        scales: {
+          x: {
+            stacked: true,
+            ticks: { color: T.earthLight },
+            grid: { color: T.earthLight },
+          },
+          y: {
+            stacked: true,
+            ticks: { color: T.pitchBlack },
+            grid: { display: false },
+          },
+        },
+      },
+    });
+
+    const compCount = d.filter(r => r.outcome_type.includes("Compensation"))
+                       .reduce((s, r) => s + r.count, 0);
+    const enCount   = d.filter(r => r.outcome_type.includes('Enforcement Notice'))
+                       .reduce((s, r) => s + r.count, 0);
+    setInsight(`Across all sectors, <strong>${compCount}</strong> determinations resulted in
+      compensation awards. <strong>${enCount}</strong> attracted enforcement notices
+      (standalone or combined with compensation).`);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     4. DPA SECTIONS FREQUENCY — ranked horizontal bar
+  ══════════════════════════════════════════════════════════ */
+  function renderSections() {
+    const d = patternData.sections_frequency;
+    if (!d || !d.length) return noData('No violations linked to sections yet. Run seed_sections.py and backfill_violations.');
+
+    const canvas = makeCanvasWithHeader('sectionsChart',
+      'Most Violated DPA Sections',
+      'Top 20 sections by violation frequency across all recorded determinations'
+    );
+
+    activeChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: d.map(r => r.section_number),
+        datasets: [{
+          label: 'Violation count',
+          data: d.map(r => r.count),
+          backgroundColor: d.map((_, i) => {
+            if (i === 0) return T.red + 'EE';
+            if (i <= 2)  return T.amber + 'CC';
+            return T.cgMid + '99';
+          }),
+          borderColor: d.map((_, i) => {
+            if (i === 0) return T.red;
+            if (i <= 2)  return T.amber;
+            return T.cgMid;
+          }),
+          borderWidth: 1,
+          borderRadius: 2,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = d[ctx.dataIndex];
+                return ` ${r.count} violation${r.count !== 1 ? 's' : ''} — ${r.title || ''}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: T.earthLight },
+            grid: { color: T.earthLight },
+          },
+          y: {
+            ticks: { color: T.pitchBlack },
+            grid: { display: false },
+          },
+        },
+      },
+    });
+
+    const top = d[0];
+    setInsight(`<strong>s${top.section_number}</strong> is the most frequently violated provision —
+      <em>${top.title || ''}</em> — cited in <strong>${top.count}</strong> violations across the corpus.
+      Top 3 sections account for ${d.slice(0,3).reduce((s,r)=>s+r.count,0)} of
+      ${d.reduce((s,r)=>s+r.count,0)} total recorded violations.`);
+  }
+
+/* ══════════════════════════════════════════════════════════
+   5. BREACH LAYER PROFILE — doughnut, decomposed to canonical layers
+   A compound entry like "Application layer + Process layer" now
+   contributes its count to BOTH Application and Process, rather
+   than existing as its own 11th slice. Reuses the same 5 layer
+   colours established for glitch_'s bracket tags, for consistency
+   across the two features.
+══════════════════════════════════════════════════════════ */
+function decomposeLayerFrequency(raw) {
+  const canonical = ['Application layer', 'Process layer', 'Human layer', 'Policy layer', 'Infrastructure layer'];
+  const totals = {};
+  canonical.forEach(l => totals[l] = 0);
+
+  raw.forEach(r => {
+    r.layer.split('+').map(s => s.trim()).filter(Boolean).forEach(part => {
+      const match = canonical.find(c => c.toLowerCase() === part.toLowerCase());
+      if (match) totals[match] += r.count;
+      // anything not matching one of the 5 canonical layers is dropped
+      // silently — shouldn't happen given the taxonomy, but avoids a
+      // crash if a stray/legacy label (e.g. old "Integration layer") appears
+    });
+  });
+
+  return canonical
+    .map(layer => ({ layer, count: totals[layer] }))
+    .filter(r => r.count > 0)
+    .sort((a, b) => b.count - a.count);
+}
+
+function renderLayers() {
+  const raw = patternData.layer_frequency;
+  if (!raw || !raw.length) return noData('No glitch_ entries with layer classifications yet.');
+
+  const layerColours = {
+    'Application layer':    T.amber,
+    'Process layer':        T.red,
+    'Human layer':          T.cgBright,
+    'Policy layer':         T.blue,
+    'Infrastructure layer': T.pitchBlack,
+  };
+
+  const d = decomposeLayerFrequency(raw);
+  const trueTotalEntries = raw.reduce((s, r) => s + r.count, 0); // distinct glitch_ entries, unaffected by decomposition
+
+  const canvas = makeCanvasWithHeader('layersChart',
+    'Breach Organisational Layer Profile',
+    'Distribution of system failure layers across glitch_ entries — where in the organisation did the breach originate? Entries touching more than one layer count toward each.'
+  );
+  activeChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: d.map(r => r.layer),
+      datasets: [{
+        data: d.map(r => r.count),
+        backgroundColor: d.map(r => (layerColours[r.layer] || T.earthWarm) + 'CC'),
+        borderColor:     d.map(r =>  layerColours[r.layer] || T.earthWarm),
+        borderWidth: 2,
+        hoverOffset: 8,
+      }],
+    },
+    options: {
+      responsive: true,
+      cutout: '55%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: T.pitchBlack, padding: 16, boxWidth: 14 },
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.raw} breach${ctx.raw !== 1 ? 'es' : ''}`
+          }
+        }
+      },
+    },
+  });
+
+  const top = d[0];
+  setInsight(`<strong>${top.layer}</strong> appears in <strong>${top.count}</strong> of ${trueTotalEntries}
+    glitch_ entries (${Math.round(top.count / trueTotalEntries * 100)}%) — the most common failure origin.
+    Entries touching multiple layers are counted in each, so these figures don't sum to ${trueTotalEntries}.`);
+}
+
+  /* ══════════════════════════════════════════════════════════
+     6. CASE VOLUME OVER TIME — line/area
+  ══════════════════════════════════════════════════════════ */
+  function renderVolume() {
+    const d = patternData.cases_over_time;
+    if (!d || !d.length) return noData();
+
+    const canvas = makeCanvasWithHeader('volumeChart',
+      'ODPC Determination Volume over Time',
+      'Monthly determination count — the corpus as it has grown'
+    );
+
+    // Cumulative line
+    let running = 0;
+    const cumulative = d.map(r => { running += r.count; return running; });
+
+    activeChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: d.map(r => r.year_month),
+        datasets: [
+          {
+            label: 'Monthly count',
+            data: d.map(r => r.count),
+            borderColor: T.cgMid,
+            backgroundColor: T.cgMid + '18',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: T.cgMid,
+            yAxisID: 'y',
+          },
+          {
+            label: 'Cumulative total',
+            data: cumulative,
+            borderColor: T.amber,
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.35,
+            pointRadius: 0,
+            borderDash: [4, 4],
+            yAxisID: 'y2',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'top', labels: { color: T.pitchBlack } },
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: T.earthLight,
+              maxTicksLimit: 18,
+              maxRotation: 45,
+            },
+            grid: { color: T.earthLight },
+          },
+          y: {
+            position: 'left',
+            ticks: { color: T.cgMid },
+            grid: { color: T.earthLight },
+            title: { display: true, text: 'Monthly', color: T.cgMid },
+          },
+          y2: {
+            position: 'right',
+            ticks: { color: T.amber },
+            grid: { display: false },
+            title: { display: true, text: 'Cumulative', color: T.amber },
+          },
+        },
+      },
+    });
+
+    const peak = d.reduce((best, r) => r.count > best.count ? r : best, d[0]);
+    setInsight(`Peak month was <strong>${peak.year_month}</strong> with
+      <strong>${peak.count}</strong> determinations.
+      Corpus total: <strong>${running}</strong> determinations across
+      ${d.length} months of ODPC activity.`);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     7. ODPC PROCESSING SPEED
+     Two sub-charts in the same panel:
+     (a) Distribution buckets (bar)
+     (b) Avg days per sector (horizontal bar)
+  ══════════════════════════════════════════════════════════ */
+  function renderSpeed() {
+    const buckets = patternData.processing_speed;
+    const bySector = patternData.avg_speed_by_sector;
+    if (!buckets || !buckets.length) return noData();
+
+    // Two charts side by side
+    panel.innerHTML = `
+      <div class="chart-grid-2">
+        <div class="chart-wrap">
+          <div class="chart-title">Processing Speed Distribution</div>
+          <div class="chart-subtitle">Complaint filed → determination issued</div>
+          <div class="chart-canvas-wrap"><canvas id="speedBucketsChart"></canvas></div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">Average Processing Time by Sector</div>
+          <div class="chart-subtitle">Mean days from complaint to determination</div>
+          <div class="chart-canvas-wrap"><canvas id="speedSectorChart"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-insight" id="chartInsight"></div>`;
+
+    // Chart A — buckets
+    const ca = document.getElementById('speedBucketsChart');
+    new Chart(ca, {
+      type: 'bar',
+      data: {
+        labels: buckets.map(r => r.bucket),
+        datasets: [{
+          label: 'Determinations',
+          data: buckets.map(r => r.count),
+          backgroundColor: [T.cgBright+'CC', T.cgMid+'CC', T.amber+'CC', T.red+'CC'],
+          borderColor:     [T.cgBright,      T.cgMid,      T.amber,      T.red],
+          borderWidth: 1, borderRadius: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: T.earthLight }, grid: { color: T.border } },
+          y: { ticks: { color: T.earthLight }, grid: { color: T.border } },
+        },
+      },
+    });
+
+    // Chart B — sector averages
+    if (bySector && bySector.length) {
+      const cb = document.getElementById('speedSectorChart');
+      new Chart(cb, {
+        type: 'bar',
+        data: {
+          labels: bySector.map(r => r.sector),
+          datasets: [{
+            label: 'Avg days',
+            data: bySector.map(r => r.avg_days),
+            backgroundColor: bySector.map((r, i) => SECTOR_COLOURS[i % SECTOR_COLOURS.length] + 'CC'),
+            borderColor:     bySector.map((r, i) => SECTOR_COLOURS[i % SECTOR_COLOURS.length]),
+            borderWidth: 1, borderRadius: 2,
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: { legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ` ${ctx.raw} days avg` } }
+          },
+          scales: {
+            x: { ticks: { color: T.earthLight }, grid: { color: T.border } },
+            y: { ticks: { color: T.pitchBlack }, grid: { display: false } },
+          },
+        },
+      });
+    }
+
+    const fastest = buckets[0];
+    const total   = buckets.reduce((s, r) => s + r.count, 0);
+    setInsight(`<strong>${fastest.count}</strong> of ${total} determinations
+      (${Math.round(fastest.count/total*100)}%) were resolved in under 60 days from complaint filing.
+      This reflects the ODPC's target processing window.`);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     8. VICTIM LATENCY
+     How long between breach and complaint filing.
+  ══════════════════════════════════════════════════════════ */
+  function renderLatency() {
+    const d = patternData.victim_latency_buckets;
+    if (!d || !d.length || !d.some(r => r.count > 0)) return noData('No breach date / complaint date pairs recorded yet.');
+
+    const canvas = makeCanvasWithHeader('latencyChart',
+      'Victim Latency — Breach to Complaint',
+      'How long after a breach occurred did complainants file with the ODPC?'
+    );
+
+    const colours = [T.cgBright, T.cgMid, T.amber, T.red, '#A855F7'];
+
+    activeChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: d.map(r => r.bucket),
+        datasets: [{
+          label: 'Complaints',
+          data: d.map(r => r.count),
+          backgroundColor: colours.map(c => c + 'CC'),
+          borderColor:     colours,
+          borderWidth: 1, borderRadius: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.raw} complaint${ctx.raw!==1?'s':''}` } },
+        },
+        scales: {
+          x: { ticks: { color: T.earthLight }, grid: { color: T.border } },
+          y: { ticks: { color: T.earthLight }, grid: { color: T.border } },
+        },
+      },
+    });
+
+    const longTail = d.find(r => r.bucket === '365+') || { count: 0 };
+    const total    = d.reduce((s, r) => s + r.count, 0);
+    setInsight(`<strong>${longTail.count}</strong> complaints (${total ? Math.round(longTail.count/total*100) : 0}%)
+      were filed more than a year after the causative breach.
+      Extended latency is typically a <em>discovery gap</em> — the complainant was unaware the breach had occurred.`);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     9. CITATION GRAPH — D3 force-directed
+  ══════════════════════════════════════════════════════════ */
+  function renderCitations() {
+    const g = patternData.citation_graph;
+    if (!g || !g.nodes || g.nodes.length === 0) return noData('Citation graph requires cross-case citations to be recorded in the corpus.');
+
+    const edges = (g.edges || []).filter(e => {
+      const ids = new Set(g.nodes.map(n => n.id));
+      return ids.has(e.source) && ids.has(e.target);
+    });
+
+
+    if (!edges.length) {
+      panel.innerHTML = `
+        <div class="chart-wrap">
+          <div class="chart-title">Cross-Case Citation Graph</div>
+          <div class="chart-subtitle">${g.nodes.length} determinations in corpus · no inter-case citations recorded yet</div>
+          <div class="chart-no-data">Citations will appear as cross-references are ingested.<br>
+          The graph will become the moat visualisation once the corpus grows.</div>
+        </div>`;
+      return;
+    }
+
+    panel.innerHTML = `
+      <div class="chart-wrap">
+        <div class="chart-title">Cross-Case Citation Graph</div>
+        <div class="chart-subtitle">${g.nodes.length} determinations · ${edges.length} citation edges · click a node to view the case</div>
+        <div style="position:relative;">
+          <svg id="citationGraphSvg"></svg>
+        </div>
+        <div class="chart-insight" id="chartInsight"></div>
+      </div>`;
+
+    const svg    = d3.select('#citationGraphSvg');
+    const width  = document.getElementById('citationGraphSvg').clientWidth || 700;
+    const height = 500;
+
+    // Sector → colour
+    const sectorSet = [...new Set(g.nodes.map(n => n.sector).filter(Boolean))];
+    const colour    = d3.scaleOrdinal(d3.schemeTableau10).domain(sectorSet);
+
+    // Count citations per node (degree)
+    const degree = {};
+    edges.forEach(e => {
+      degree[e.source] = (degree[e.source] || 0) + 1;
+    });
+
+    const simulation = d3.forceSimulation(g.nodes)
+      .force('link',   d3.forceLink(edges).id(d => d.id).distance(80))
+      .force('charge', d3.forceManyBody().strength(-120))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collide', d3.forceCollide(18))
+      .force('x', d3.forceX(width / 2).strength(0.11))   // new — gentle pull toward center
+      .force('y', d3.forceY(height / 2).strength(0.11));  // new
+
+    const link = svg.append('g')
+      .selectAll('line')
+      .data(edges)
+      .join('line')
+      .attr('class', 'link');
+
+    const node = svg.append('g')
+      .selectAll('g')
+      .data(g.nodes)
+      .join('g')
+      .attr('class', 'node')
+      .call(d3.drag()
+        .on('start', (event, d) => {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x; d.fy = d.y;
+        })
+        .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
+        .on('end',  (event, d) => {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null; d.fy = null;
+        })
+      )
+      .on('click', (event, d) => { window.location = `/case/${d.id}`; })
+      .on('mouseover', (event, d) => {
+        const tt = document.getElementById('graphTooltip');
+        tt.style.display = 'block';
+        tt.style.left    = (event.pageX + 12) + 'px';
+        tt.style.top     = (event.pageY - 20) + 'px';
+        tt.innerHTML     = `<strong>${d.label}</strong><br>${d.sector || ''}
+          ${degree[d.id] ? `<br>${degree[d.id]} citation${degree[d.id]!==1?'s':''}` : ''}`;
+      })
+      .on('mouseout', () => {
+        document.getElementById('graphTooltip').style.display = 'none';
+      });
+
+    node.append('circle')
+      .attr('r', d => 5 + Math.min((degree[d.id] || 0) * 2, 12))
+      .attr('fill',   d => colour(d.sector || 'Other') + 'CC')
+      .attr('stroke', d => colour(d.sector || 'Other'));
+
+    const PAD = 24;
+    simulation.on('tick', () => {
+      g.nodes.forEach(d => {                               // new — hard clamp as a safety net
+        d.x = Math.max(PAD, Math.min(width - PAD, d.x));
+        d.y = Math.max(PAD, Math.min(height - PAD, d.y));
+      });
+      link
+         .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+         .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+
+    const hubs = Object.entries(degree).sort((a,b)=>b[1]-a[1]).slice(0,2);
+    setInsight(`Nodes are coloured by sector. Size reflects citation frequency.
+      Most-cited: <strong>${g.nodes.find(n=>n.id==hubs[0][0])?.label||'—'}</strong>
+      (${hubs[0][1]} citations).
+      Click any node to navigate to its full determination.`);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     10. DSR LAZINESS BY SECTOR
+     Respondents who failed to act on data subject requests
+     before the complainant escalated to the ODPC.
+  ══════════════════════════════════════════════════════════ */
+  function renderDsr() {
+    const d = patternData.dsr_by_sector;
+    if (!d || !d.length) return noData('No DSR laziness flags recorded yet.');
+
+    const canvas = makeCanvasWithHeader('dsrChart',
+      'DSR Laziness Rate by Sector',
+      'Respondents who failed to action data subject requests before ODPC escalation · sectors with at least one recorded instance'
+    );
+
+    activeChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: d.map(r => r.sector),
+        datasets: [{
+          label: 'DSR Laziness Rate (%)',
+          data: d.map(r => r.pct),
+          backgroundColor: d.map(r => (r.pct > 50 ? T.red : T.amber) + 'CC'),
+          borderColor:     d.map(r =>  r.pct > 50 ? T.red : T.amber),
+          borderWidth: 1, borderRadius: 2,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = d[ctx.dataIndex];
+                return ` ${r.pct}% — ${r.lazy_count} of ${r.total} cases`;
+              }
+            }
+          },
+        },
+        scales: {
+          x: {
+            max: 100,
+            ticks: { callback: v => v + '%', color: T.earthLight },
+            grid: { color: T.earthLight },
+          },
+          y: {
+            ticks: { color: T.pitchBlack },
+            grid: { display: false },
+          },
+        },
+      },
+    });
+
+    const top = d[0];
+    setInsight(`<strong>${top.sector}</strong> has the highest DSR laziness rate at
+      <strong>${top.pct}%</strong>. DSR laziness flags cases where the respondent could have
+      resolved the complaint internally but failed to do so — resulting in unnecessary ODPC escalation.`);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     KEYBOARD NAVIGATION
+     Arrow keys move between nav buttons. Enter selects.
+  ══════════════════════════════════════════════════════════ */
+  const navBtns = () => [...document.querySelectorAll('.pat-nav-btn')];
+
+  document.addEventListener('keydown', e => {
+    const btns    = navBtns();
+    const current = btns.findIndex(b => b === document.activeElement);
+    if (current === -1) return;
+
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const next = btns[(current + 1) % btns.length];
+      next.focus();
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const prev = btns[(current - 1 + btns.length) % btns.length];
+      prev.focus();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      btns[current].click();
+    }
+  });
+
+</script>
+{% endblock %}

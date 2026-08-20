@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Coming soon — /dapa{% endblock %}
+
+{% block extra_css %}
+<style>
+.error-shell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 48px;
+  min-height: calc(100vh - 56px);
+}
+
+.error-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  max-width: 520px;
+  width: 100%;
+}
+
+.error-glyph {
+  font-family: var(--font-display);
+  font-size: 5rem;
+  font-weight: 800;
+  color: var(--cg-bright);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  opacity: 0.18;
+  user-select: none;
+}
+
+.error-rule {
+  width: 48px;
+  height: 2px;
+  background: var(--cg-mid);
+}
+
+.error-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cg-mid);
+}
+
+.error-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.error-body {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--silver-dim);
+  line-height: 1.75;
+  max-width: 400px;
+}
+
+.error-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--cg-deep);
+  border-radius: 3px;
+  width: 100%;
+}
+
+.error-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cg-bright);
+  flex-shrink: 0;
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 1; }
+}
+
+.error-status-text {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--silver-dim);
+}
+
+.error-status-text strong {
+  color: var(--cg-mid);
+}
+
+.error-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+.error-btn-primary {
+  background: var(--cg-deep);
+  color: var(--text-primary);
+  padding: 10px 24px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  border-radius: 2px;
+  border: 1px solid var(--cg-mid);
+  text-decoration: none;
+  transition: background 0.2s, box-shadow 0.2s;
+  display: inline-block;
+}
+
+.error-btn-primary:hover {
+  background: var(--cg-mid);
+  box-shadow: 0 0 14px rgba(0,229,160,0.2);
+}
+
+.error-btn-ghost {
+  background: transparent;
+  color: var(--silver-dim);
+  padding: 10px 18px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s;
+  display: inline-block;
+}
+
+.error-btn-ghost:hover {
+  border-color: var(--cg-deep);
+  color: var(--cg-mid);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-shell">
+  <div class="error-inner">
+
+    <div class="error-glyph" aria-hidden="true">///</div>
+
+    <div class="error-rule"></div>
+
+    <div>
+      <div class="error-eyebrow">/dapa — under active development</div>
+      <div class="error-title">This section is<br>being built.</div>
+    </div>
+
+    <div class="error-body">
+      This feature is part of the /dapa roadmap and is currently in
+      development. The corpus intelligence layer, search, and the
+      Citizen's Wall are fully operational — start there.
+    </div>
+
+    <div class="error-status-row">
+      <div class="error-status-dot"></div>
+      <div class="error-status-text">
+        <strong>Status:</strong> in progress —
+        {{ corpus_stats.total_cases or '—' }} determinations indexed and searchable now
+      </div>
+    </div>
+
+    <div class="error-actions">
+      <a href="/explore" class="error-btn-primary">Search the corpus ↗</a>
+      <a href="/wall" class="error-btn-ghost">Citizen's Wall</a>
+      <a href="/" class="error-btn-ghost">Home</a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

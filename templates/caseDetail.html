@@ -1,0 +1,876 @@
+{% extends "base.html" %}
+
+{% block title %}{{ case.complainant_initials or case.complainant or '?' }} v {{ case.respondent }}{% endblock %}
+{% block meta_description %}ODPC determination: {{ case.complainant_initials or '?' }} v {{ case.respondent }} — {{ case.case_reference }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── CASE HEADER BAND ─────────────────────────────────────── */
+  .case-header {
+    padding: 32px 48px 28px;
+    border-bottom: 1px solid var(--border);
+    background:
+      radial-gradient(ellipse 70% 60% at 0% 50%, rgba(0,229,160,0.04) 0%, transparent 60%),
+      var(--bg);
+  }
+
+  .case-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 800;
+    color: var(--cream);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+
+  /* Quick-facts strip — ref, sector, outcome, quantum */
+  .case-quickfacts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    margin-bottom: 14px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+  }
+
+  .qf-item {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    color: var(--parchment);
+  }
+
+  .qf-label { color: var(--earth-warm); }
+
+  .qf-sector {
+    padding: 2px 9px;
+    border-radius: 2px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    /* sector colour applied inline via Jinja */
+  }
+
+  .qf-quantum {
+    color: var(--accent-deep); /*(--cg-bright);*/
+    font-weight: 700;
+    font-size: 0.78rem;
+  }
+
+  /* Citation row */
+  .case-citations {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--parchment);
+    margin-bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .case-citations strong { color: var(--earth-light); }
+
+  .citation-link {
+    color: var(--cg-mid);
+    border-bottom: 1px solid rgba(0,196,122,0.3);
+    transition: color 0.15s;
+  }
+  .citation-link:hover { color: var(--cg-bright); }
+
+  /* Theme line — extracted from violations */
+  .case-theme {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.98rem;
+    color: var(--pitch-black);
+    line-height: 1.55;
+    padding-left: 14px;
+    border-left: 2px solid var(--cg-deep);
+    max-width: 770px;
+    margin-bottom: 14px;
+  }
+
+  /* Flag chips row */
+  .case-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .flag-chip {
+    font-family: var(--font-mono);
+    font-size: 0.71rem;
+    letter-spacing: 0.07em;
+    padding: 3px 9px;
+    border-radius: 2px;
+    background: var(--bg-panel); /*rgba(245,166,35,0.08);*/
+    border: 1px solid var(--accent-cyan);/*(--alert-amber);*/
+    color: var(--accent-deep);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-transform: uppercase;
+  }
+
+  .flag-chip:hover {
+    background: rgba(245,166,35,0.18);
+    color: var(--cream);
+  }
+
+  /* ── INTRO PARAGRAPH ──────────────────────────────────────── */
+  .case-intro {
+    padding: 20px 48px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-panel);
+  }
+
+  .case-intro p {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--pitch-black); (--parchment);*/
+    line-height: 1.8;
+    max-width: 1200px; /*760px;*/
+    opacity: 1.01; /*0.88;*/
+  }
+
+  /* ── PANEL BUTTON STRIP ───────────────────────────────────── */
+  .panel-strip {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-panel);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .panel-strip::-webkit-scrollbar { display: none; }
+
+  .panel-btn {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 14px 22px;
+    color: var(--parchment);
+    border-right: 1px solid var(--border);
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: color 0.18s, border-color 0.18s, background 0.18s;
+    white-space: nowrap;
+    position: relative;
+  }
+
+  .panel-btn:hover {
+    color: var(--cg-bright);
+    background: rgba(0,229,160,0.03);
+  }
+
+  .panel-btn.active {
+    color: var(--cg-bright);
+    border-bottom-color: var(--cg-bright);
+    background: rgba(0,229,160,0.04);
+  }
+
+  /* AI-powered buttons get a subtle amber tint */
+  .panel-btn.ai-btn { color: var(--earth-light); }
+  .panel-btn.ai-btn:hover { color: var(--alert-amber); background: rgba(245,166,35,0.03); }
+  .panel-btn.ai-btn.active { color: var(--alert-amber); border-bottom-color: var(--alert-amber); }
+
+  /* AI badge */
+  .ai-badge {
+    display: inline-block;
+    font-size: 0.5rem;
+    letter-spacing: 0.08em;
+    padding: 1px 4px;
+    border-radius: 2px;
+    background: rgba(245,166,35,0.15);
+    color: var(--alert-amber);
+    border: 1px solid rgba(245,166,35,0.25);
+    margin-left: 5px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+  }
+
+  /* ── PANEL CONTENT AREA ───────────────────────────────────── */
+  .panel-content {
+    min-height: 320px;
+    padding: 32px 48px;
+    animation: fadeIn 0.2s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Empty / loading states inside panel */
+  .panel-idle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 260px;
+    gap: 12px;
+    opacity: 0.4;
+  }
+
+  .panel-idle .glyph { font-size: 2rem; }
+
+  .panel-idle p {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--earth-warm);
+    text-align: center;
+  }
+
+  .panel-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 48px 0;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--earth-warm);
+  }
+
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--cg-bright);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Panel prose */
+  .panel-prose {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--parchment);
+    line-height: 1.85;
+    max-width: 760px;
+  }
+
+  .panel-prose p + p { margin-top: 1em; }
+
+  .panel-prose h4 {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cg-mid);
+    margin: 24px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Simple / Swahili label */
+  .ai-generated-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--alert-amber);
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ai-generated-label::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--alert-amber);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  /* ── METADATA TABLE ───────────────────────────────────────── */
+  .meta-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+  }
+
+  .meta-table tr {
+    border-bottom: 1px solid rgba(196,154,108,0.06);
+  }
+
+  .meta-table tr:last-child { border-bottom: none; }
+
+  .meta-table td {
+    padding: 8px 0;
+    vertical-align: top;
+  }
+
+  .meta-table td:first-child {
+    color: var(--earth-warm);
+    width: 180px;
+    padding-right: 20px;
+    flex-shrink: 0;
+  }
+
+  .meta-table td:last-child {
+    color: var(--cream);
+  }
+
+  .meta-bool-yes {
+    color: var(--cg-bright);
+    font-weight: 700;
+  }
+
+  .meta-bool-no {
+    color: var(--earth-warm);
+    opacity: 0.5;
+  }
+
+  /* ── TECHNICAL TERMS GRID ─────────────────────────────────── */
+  .terms-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 760px;
+  }
+
+  .term-item {
+    border-left: 2px solid var(--cg-deep);
+    padding: 10px 16px;
+    background: var(--bg-panel);
+    border-radius: 0 3px 3px 0;
+  }
+
+  .term-name {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--alert-amber);
+    letter-spacing: 0.04em;
+    margin-bottom: 5px;
+  }
+
+  .term-category {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    color: var(--earth-warm);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+
+  .term-definition {
+    font-size: 0.82rem;
+    color: var(--parchment);
+    line-height: 1.7;
+  }
+
+  /* ── FLAGS PANEL ──────────────────────────────────────────── */
+  .flags-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 760px;
+  }
+
+  .flag-item {
+    background: var(--bg-panel);
+    border: 2px solid rgba(245,166,35,0.14);
+    border-left: 3px solid var(--alert-amber);
+    border-radius: 0 3px 3px 0;
+    padding: 10px 16px;
+  }
+
+  .flag-item-name {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--alert-amber);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .flag-item-text {
+    font-size: 0.82rem;
+    color: var(--pitch-black);
+    line-height: 1.75;
+  }
+
+  /* ── VIOLATION PANEL (inside summary) ────────────────────── */
+  .violation-row {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--alert-red);
+    border-radius: 0 3px 3px 0;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+  }
+
+  .violation-row-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .violation-section-num {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--alert-amber);*/
+  }
+
+  .violation-section-title {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--earth-light);
+  }
+
+  .violation-severity {
+    margin-left: auto;
+    display: flex;
+    gap: 2px;
+  }
+
+  .sev-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+  .sev-dot.on { background: var(--alert-amber); }
+
+  .violation-type-text {
+    font-size: 0.8rem;
+    color: var(--parchment);
+    line-height: 1.6;
+  }
+
+  /* ── GLITCH LINK BANNER ───────────────────────────────────── */
+  .glitch-link-banner {
+    margin: 0 48px 0;
+    padding: 14px 18px;
+    background: rgba(245,166,35,0.06);
+    border: 1px solid rgba(245,166,35,0.2);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--parchment);
+  }
+
+  .glitch-link-banner a {
+    color: var(--alert-amber);
+    transition: color 0.15s;
+    font-weight: 700;
+  }
+  .glitch-link-banner a:hover { color: var(--cream); }
+
+  .glitch-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--alert-amber);
+    flex-shrink: 0;
+  }
+
+  /* ── SECTOR COLOUR MAP ────────────────────────────────────── */
+  /* Applied inline in Jinja; kept here for reference */
+
+  @media (max-width: 640px) {
+    .case-header, .case-intro, .panel-content { padding-left: 20px; padding-right: 20px; }
+    .glitch-link-banner { margin: 0 20px; }
+    .panel-strip { padding: 0; }
+    .panel-btn { padding: 12px 14px; font-size: 0.58rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Helpers ── #}
+{% set title = (case.complainant_initials or case.complainant or '?') + ' v ' + case.respondent %}
+{% if case.complainant_2 %}
+  {% set title = (case.complainant_initials or case.complainant) + ' and ' + (case.complainant_2_initials or case.complainant_2) + ' v ' + case.respondent %} 
+{% elif case.respondent_2 %}
+  {% set title = (case.complainant_initials or case.complainant or '?') + ' v ' + case.respondent + ' and ' + case.respondent_2 %}
+{% elif case.complainant_2 and case.respondent_2 %}
+  {% set title = (case.complainant_initials or case.complainant) + ' and ' + (case.complainant_2_initials or case.complainant_2) + ' v ' + case.respondent + ' & ' + case.respondent_2 %}
+{% endif %}
+
+{# Sector colour map — tag class by sector #}
+{% set sector_colours = {
+  'Banking & Finance':        ('tag-blue',  '#1A6EFF'),
+  'Digital Lending':          ('tag-amber', '#F5A623'),
+  'Insurance':                ('tag-earth', '#C49A6C'),
+  'Healthcare':               ('tag-blue',  '#1A6EFF'),
+  'Telecommunications':       ('tag-cg',    '#00C47A'),
+  'Employment & HR':          ('tag-earth', '#C49A6C'),
+  'Government & Public Sector':('tag-blue', '#1A6EFF'),
+  'Media & Marketing':        ('tag-amber', '#F5A623'),
+  'Betting & Gaming':         ('tag-red',   '#E63030'),
+  'Other':                    ('tag-earth', '#C49A6C'),
+} %}
+{% set sector_tag = sector_colours.get(case.sector, ('tag-earth', '#C49A6C')) %}
+
+{# Extract flags from important_flags — split on lines that are ALL_CAPS: #}
+{% set raw_flags = [] %}
+{% if case.important_flags %}
+  {% for line in case.important_flags.split('\n') %}
+    {% if line.strip() and line.strip() == line.strip().upper() and line.strip()|length > 3 %}
+      {% if raw_flags.append(line.strip()) %}{% endif %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{# Theme: first violation's section title, or first sentence of merits #}
+{% if violations %}
+  {% set theme_text = violations[0].violation_type or violations[0].section_title or '' %}
+{% else %}
+  {% set theme_text = '' %}
+{% endif %}
+
+{# Intro paragraph: first ~280 chars of merits -- NOW CHANGED TO EXTRACT THE INTRODUCTION PAR#} 
+{% if case.introduction %}
+  {% set intro = case.introduction[:300].rsplit(' ', 1)[0] + '…' if case.introduction|length > 300 else case.introduction %}
+{% else %}
+  {% set intro = '' %}
+{% endif %}
+
+{# ── BACK NAV ── #}
+<a href="javascript:history.back()" class="back-nav">← Back to results</a>
+
+{# ── CASE HEADER ── #}
+<div class="case-header">
+  <h1 class="case-title">{{ title }}</h1>
+
+  <div class="case-quickfacts">
+    <span class="qf-item">
+      <span class="qf-label"><strong>Ref:</strong></span>
+      {{ case.case_reference or '—' }}
+    </span>
+    {% if case.complaint_number %}
+    <span class="qf-item">
+      <span class="qf-label"><strong>Complaint No:</strong></span>
+      {{ case.complaint_number }}
+    </span>
+    {% endif %}
+    {% if case.sector %}
+    <span class="qf-item">
+      <span class="qf-label">Sector</span>
+      <span class="tag {{ sector_tag[0] }}">{{ case.sector }}</span>
+    </span>
+    {% endif %}
+    {% if case.determination_date %}
+    <span class="qf-item">
+      <span class="qf-label">Determined On</span>
+      {{ case.determination_date[:10] }}
+    </span>
+    {% endif %}
+    {% if case.outcome_type %}
+    <span class="qf-item">
+      <span class="qf-label">Outcome</span>
+      <span class="tag {% if 'enforcement' in case.outcome_type %}tag-red{% elif case.outcome_type == 'dismissed' %}tag-earth{% else %}tag-cg{% endif %}">
+        {{ case.outcome_type.replace('_', ' ') }}
+      </span>
+    </span>
+    {% endif %}
+    {% if case.quantum and case.quantum > 0 %}
+    <span class="qf-item">
+      <span class="qf-label">Award</span>
+      <span class="qf-quantum">KES {{ '{:,.0f}'.format(case.quantum) }}</span>
+    </span>
+    {% endif %}
+  </div>
+
+  {# Citations #}
+  {% if citations %}
+  <div class="case-citations">
+    <strong>Citations:</strong>
+    {% for c in citations %}
+      <span class="citation-link" title="{{ c.citation_context or '' }}">{{ c.cited_reference }}</span>{% if not loop.last %} · {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Theme line #}
+  {% if theme_text %}
+  <div class="case-theme">{{ theme_text }}</div>
+  {% endif %}
+
+  {# Flags #}
+  {% if raw_flags %}
+  <div class="case-flags">
+    {% for flag in raw_flags %}
+    <button class="flag-chip" onclick="activatePanel('flags')" title="View full flag analysis">
+      {{ flag.replace('_', ' ').lower() }}
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+{# ── INTRO PARAGRAPH ── #}
+{% if intro %}
+<div class="case-intro">
+  <p>{{ intro }}</p>
+</div>
+{% endif %}
+
+{# ── GLITCH LINK BANNER ── #}
+{% if glitch_entry %}
+<div class="glitch-link-banner">
+  <div class="glitch-dot"></div>
+  <span>glitch_ entry available —</span>
+  <a href="/glitch/{{ glitch_entry.id }}">{{ glitch_entry.case_title }}</a>
+</div>
+{% endif %}
+
+{# ── PANEL BUTTON STRIP ── #}
+<div class="panel-strip" role="tablist" aria-label="Case content panels">
+  <button class="panel-btn" role="tab" onclick="activatePanel('summary')"   id="btn-summary"   aria-selected="false">Summary</button>
+  <button class="panel-btn ai-btn" role="tab" onclick="activatePanel('simple')" id="btn-simple" aria-selected="false">
+    Simple <span class="ai-badge">AI</span>
+  </button>
+  <button class="panel-btn ai-btn" role="tab" onclick="activatePanel('swahili')" id="btn-swahili" aria-selected="false">
+    Swahili <span class="ai-badge">AI</span>
+  </button>
+  <button class="panel-btn" role="tab" onclick="activatePanel('metadata')"  id="btn-metadata"  aria-selected="false">Metadata</button>
+  <button class="panel-btn" role="tab" onclick="activatePanel('terms')"     id="btn-terms"     aria-selected="false">
+    Key Concepts & Terms{% if terms %} <span style="color:var(--earth-warm);font-size:0.58rem;">({{ terms|length }})</span>{% endif %}
+  </button>
+<button class="panel-btn" role="tab" onclick="activatePanel('flags')"     id="btn-flags"     aria-selected="false">
+    Flags{% if raw_flags %} <span style="color:var(--earth-warm);font-size:0.58rem;">({{ raw_flags|length }})</span>{% endif %}
+  </button>
+</div>
+
+{# ── PANEL CONTENT ── #}
+<div id="panelContent" class="panel-content">
+  <div class="panel-idle">
+    <div class="glyph">◎</div>
+    <p>Select a panel above to view case content.</p>
+  </div>
+</div>
+
+{# ── PASS DATA TO JS ── #}
+<script>
+  const CASE_ID = {{ case.id }};
+
+  /* ── PANEL DEFINITIONS ─────────────────────────────────── */
+
+  const panels = {
+
+  summary: () => `
+    <div class="panel-prose">
+      ${CASE_MERITS ? `<h4>Merits</h4>${caseRenderParagraphs(CASE_MERITS)}` : ''}
+      ${CASE_TECHNICAL_SUMMARY ? `<h4>Technical Summary</h4>${caseRenderParagraphs(CASE_TECHNICAL_SUMMARY)}` : ''}
+      {% if violations %}
+      <h4>Violations ({{ violations | length }})</h4>
+      <div>
+        {% for v in violations %}
+        <div class="violation-row">
+          <div class="violation-row-header">
+            <span class="violation-section-num">Section {{ v.section_number or v.section_number_raw or '?' }}</span>
+            {% if v.section_title %}<span class="violation-section-title">{{ v.section_title }}</span>{% endif %}
+            <div class="violation-severity">
+              {% for i in range(5) %}
+              <div class="sev-dot {% if i < (v.severity | int) %}on{% endif %}"></div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="violation-type-text">{{ v.violation_type or '' }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>`,
+
+    metadata: () => `
+      <table class="meta-table">
+        <tbody>
+          <tr><td><strong>Case Reference</strong></td><td>{{ case.case_reference or '—' }}</td></tr>
+          <tr><td><strong>Complaint No.</strong></td><td>{{ case.complaint_number or '—' }}</td></tr>
+          {% if case.consolidated_complaints %}<tr><td><strong>Consolidated Complaint(s)</strong></td><td>{{ case.consolidated_complaints }}</td></tr>{% endif %}
+          <tr><td><strong>Complainant</strong></td><td>{{ case.complainant or case.complainant_initials or '—' }}</td></tr>
+	  {% if case.complainant_2 %}<tr><td><strong>2nd Complainant</strong></td><td>{{ case.complainant_2_fullname or case.complainant_2 }}</td></tr>{% endif %}
+          <tr><td><strong>Respondent</strong></td><td>{{ case.respondent }}</td></tr>
+          {% if case.respondent_2 %}<tr><td><strong>2nd Respondent</strong></td><td>{{ case.respondent_2 }}</td></tr>{% endif %}
+          <tr><td><strong>Respondent Type</strong></td><td>{{ (case.respondent_type or '—').replace('_', ' ') }}</td></tr>
+          <tr><td><strong>Sector</strong></td><td>{{ case.sector or '—' }}</td></tr>
+          <tr><td><strong>Determination Date</strong></td><td>{{ case.determination_date or '—' }}</td></tr>
+          <tr><td><strong>Complaint Date</strong></td><td>{{ case.complaint_date or '—' }}</td></tr>
+          <tr><td><strong>Cause Of Action</strong></td><td>{{ case.breach_date or '—' }} {% if case.coa_type %}({{ case.coa_type }}){% endif %}</td></tr>
+          <tr><td><strong>Outcome</strong></td><td>{{ (case.outcome_type or '—').replace('_', ' ') }}</td></tr>
+          <tr><td><strong>Quantum Requested</strong></td><td>{% if case.quantum_requested %}KES {{ '{:,.0f}'.format(case.quantum_requested) }}{% else %}—{% endif %}</td></tr>
+          <tr><td><strong>Quantum Awarded</strong></td><td>{% if case.quantum and case.quantum > 0 %}KES {{ '{:,.0f}'.format(case.quantum) }}{% else %}—{% endif %}</td></tr>
+          <tr><td><strong>Enforcement Notice</strong></td><td><span class="{{ 'meta-bool-yes' if case.enforcement_notice else 'meta-bool-no' }}">{{ 'Yes' if case.enforcement_notice else 'No' }}</span></td></tr>
+          <tr><td><strong>Prosecution Recommended</strong></td><td><span class="{{ 'meta-bool-yes' if case.prosecution_recommended else 'meta-bool-no' }}">{{ 'Yes' if case.prosecution_recommended else 'No' }}</span></td></tr>
+          <tr><td><strong>Parallel Proceedings</strong></td><td><span class="{{ 'meta-bool-yes' if case.parallel_proceedings else 'meta-bool-no' }}">{{ 'Yes' if case.parallel_proceedings else 'No' }}</span></td></tr>
+          <tr><td><strong>Investigation Method</strong></td><td>{{ (case.investigation_method or '—').replace('_', ' ') }}</td></tr>
+          <tr><td><strong>Status of Data at Determination</strong></td><td>{{ (case.data_status_at_det or '—').replace('_', ' ') }}</td></tr>
+          <tr><td><strong>Remediation Timing</strong></td><td>{{ (case.remediation_timing or '—').replace('_', ' ') }}</td></tr>
+          <tr><td><strong>Complainant Represented</strong></td><td>{{ case.complainant_represented or '—' }}</td></tr>
+          <tr><td><strong>Data Subject Rights Laziness Flag</strong></td><td><span class="{{ 'meta-bool-yes' if case.dsr_laziness_flag else 'meta-bool-no' }}">{{ 'Yes' if case.dsr_laziness_flag else 'No' }}</span></td></tr>
+          <tr><td><strong>Defence Category</strong></td><td>{{ case.defence_category or '—' }}</td></tr>
+          {% if case.reg21_contract_vintage %}<tr><td>Reg 21 Contract Vintage</td><td>{{ case.reg21_contract_vintage }}</td></tr>{% endif %}          
+        </tbody>
+      </table>`,
+
+    terms: () => `{% if terms %}
+      <div class="terms-grid">
+        {% for t in terms %}
+        <div class="term-item">
+          <div class="term-name">{{ t.term }}</div>
+          {% if t.category %}<div class="term-category">{{ t.category }}</div>{% endif %}
+          <div class="term-definition">{{ t.definition }}</div>
+          {% if t.full_definition and t.full_definition != t.definition %}
+          <div class="term-definition" style="margin-top:8px; opacity:0.75; font-size:0.78rem;">{{ t.full_definition }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="panel-idle"><div class="glyph">◎</div><p>No technical terms recorded for this determination.</p></div>
+      {% endif %}`,
+
+    flags: () => `{% if case.important_flags %}
+      <div class="flags-grid" id="flagsGrid"></div>
+        {% for t in flags %}
+        <div class="flag-item">
+          <div class="flag-item-name">{{ t.flag }}</div>
+          <div class="flag-item-text">{{ t.text }}</div>
+          {% if t.text %}
+          <div class="flag-term-text" style="margin-top:8px; opacity:0.75; font-size:0.78rem;">{{ t.text }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="panel-idle"><div class="glyph">◎</div><p>No flags recorded for this determination.</p></div>
+      {% endif %}`,
+  };
+
+/* ------ PARAGRAPH RENDERING ------- */
+function caseRenderParagraphs(text) {
+  if (!text) return '';
+  return text
+    .split(/\n{2,}/)
+    .map(p => p.trim())
+    .filter(Boolean)
+    .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
+const CASE_MERITS = {{ (case.merits or '') | replace('\r\n', '\n') | tojson }};
+const CASE_TECHNICAL_SUMMARY = {{ (case.technical_summary or '') | replace('\r\n', '\n') | tojson }};
+
+
+  /* ── FLAGS PARSER ──────────────────────────────────────── */
+  // Parse important_flags text into {name, text} pairs client-side
+  // Format: ALL_CAPS_NAME:\nText follows...\n\nNEXT_FLAG:\n...
+  function parseFlags(raw) {
+    if (!raw) return [];
+    const result = [];
+    const blocks = raw.split(/\n(?=[A-Z][A-Z_0-9]+:)/);
+    for (const block of blocks) {
+      const colonIdx = block.indexOf(':');
+      if (colonIdx === -1) continue;
+      const name = block.slice(0, colonIdx).trim();
+      const text = block.slice(colonIdx + 1).trim();
+      if (name && text) result.push({ name, text });
+    }
+    return result;
+  }
+
+  const RAW_FLAGS = {{ (case.important_flags or '') | tojson }};
+
+  /* ── PANEL ACTIVATE ────────────────────────────────────── */
+  let activePanel = null;
+  let aiCache = {};
+
+  function activatePanel(name) {
+    // Update button states
+    document.querySelectorAll('.panel-btn').forEach(b => {
+      b.classList.toggle('active', b.id === `btn-${name}`);
+      b.setAttribute('aria-selected', b.id === `btn-${name}` ? 'true' : 'false');
+    });
+
+    const content = document.getElementById('panelContent');
+    content.style.animation = 'none';
+    content.offsetHeight; // reflow
+    content.style.animation = '';
+
+    if (name === 'summary' || name === 'metadata' || name === 'terms') {
+      content.innerHTML = panels[name]();
+      // Hydrate flags list if needed (flags panel uses same parse)
+    } else if (name === 'flags') {
+      content.innerHTML = panels.flags();
+      const list = document.getElementById('flagsGrid');
+      if (list) {
+        const parsed = parseFlags(RAW_FLAGS);
+        list.innerHTML = parsed.length
+          ? parsed.map(f => `
+              <div class="flag-item">
+                <div class="flag-item-name">${f.name.replace(/_/g, ' ')}</div>
+                <div class="flag-item-text">${f.text.replace(/\n/g, '<br>')}</div>
+              </div>`).join('')
+          : '<div class="panel-idle"><div class="glyph">◎</div><p>No flags found.</p></div>';
+      }
+    } else if (name === 'simple' || name === 'swahili') {
+      // AI-generated panels — check cache first
+      if (aiCache[name]) {
+        renderAIPanel(content, name, aiCache[name], true);
+        return;
+      }
+      content.innerHTML = `<div class="panel-loading"><div class="spinner"></div>
+        <span>Generating ${name === 'swahili' ? 'Swahili translation' : 'plain English summary'}…</span></div>`;
+
+      fetch(`/api/case/${CASE_ID}/transform?mode=${name}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            content.innerHTML = `<div class="panel-idle">
+              <div class="glyph">⚠</div>
+              <p style="color:var(--alert-amber)">${data.error}</p>
+            </div>`;
+            return;
+          }
+          aiCache[name] = data.text;
+          renderAIPanel(content, name, data.text, data.cached);
+        })
+        .catch(() => {
+          content.innerHTML = `<div class="panel-idle">
+            <div class="glyph">⚠</div>
+            <p>Network error. Please try again.</p>
+          </div>`;
+        });
+    }
+
+    activePanel = name;
+  }
+
+function renderAIPanel(container, mode, text, cached) {
+  const label = mode === 'swahili' ? 'AI · Kiswahili' : 'AI · Plain English';
+  const cacheNote = cached
+    ? '<span style="opacity:0.5; margin-left:8px;">cached</span>' : '';
+  container.innerHTML = `
+    <div class="ai-generated-label">${label}${cacheNote}</div>
+    <div class="panel-prose">${caseRenderParagraphs(text)}</div>`;
+}
+</script>
+
+{% endblock %}

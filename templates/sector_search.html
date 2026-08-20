@@ -1,0 +1,693 @@
+{% extends "base.html" %}	
+
+{% block title %}Sector Search{% endblock %}
+{% block meta_description %}Search ODPC determinations by sector or industry — Banking, Digital Lending, Telecommunications, Healthcare, Employment and more.{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── SECTOR SEARCH LAYOUT ─────────────────────────────────── */
+
+  /* Sector header band — description */
+  .sector-header {
+    padding: 32px 48px 0;
+    border-bottom: none;
+    background:
+      radial-gradient(ellipse 60% 80% at 100% -10%, rgba(0,229,160,0.04) 0%, transparent 60%),
+      var(--bg);
+  }
+
+  .sector-header p {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--parchment);
+    max-width: 540px;
+    line-height: 1.75;
+    margin-top: 6px;
+    opacity: 0.78;
+  }
+
+  /* ── SECTOR CARD GRID ─────────────────────────────────────── */
+  .sector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    gap: 8px;
+    padding: 24px 48px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sector-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 14px 16px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sector-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--cg-deep);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.2s var(--ease-out);
+  }
+
+  .sector-card:hover { border-color: rgba(0,229,160,0.25); background: rgba(0,229,160,0.025); }
+  .sector-card:hover::before,
+  .sector-card.active::before { transform: scaleY(1); }
+  .sector-card.active {
+    border-color: var(--cg-mid);
+    background: rgba(0,229,160,0.04);
+  }
+  .sector-card.active .sector-card-name { color: var(--cg-bright); }
+
+  /* "All" card — slightly different */
+  .sector-card.all-card { border-style: dashed; }
+  .sector-card.all-card.active { border-style: solid; }
+
+  .sector-card-name {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1.25;
+    transition: color 0.2s;
+  }
+
+  .sector-card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sector-card-count {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--earth-warm);
+  }
+  .sector-card-count strong { color: var(--cg-mid); font-size: 0.75rem; }
+
+  /* ── SEARCH + RESULTS LAYOUT ──────────────────────────────── */
+  .sector-search-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 28px;
+    padding: 28px 48px 40px;
+    flex: 1;
+    font-color: var(--pitch-black);
+    color: var(--bg);
+  }
+
+  .search-textarea {
+    color: var(--bg);
+    font-color: var(--pitch-black);
+  }
+
+  /* Active sector heading band */
+  .active-sector-band {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .active-sector-name {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--cg-bright);
+  }
+
+  .active-sector-sub {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--earth-warm);
+    margin-left: auto;
+  }
+
+  /* Case card — inherits from pweza.css .case-card */
+  /* Add citation row */
+  .card-citations {
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    color: var(--earth-light);
+    margin-bottom: 8px;
+  }
+  .card-citations a {
+    color: var(--alert-blue); /*(--cg-mid);*/
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(0,196,122,0.3);
+    transition: color 0.15s;
+  }
+  .card-citations a:hover { color: var(--cg-bright); }
+
+  /* Outcome badge on card */
+  .card-outcome-badge {
+    position: absolute;
+    top: 18px; right: 20px;
+  }
+
+  /* Quantum highlight — inline in meta */
+  .quantum-highlight {
+    color: var(--cg-deep);
+    font-weight: 700;
+  }
+
+  /* ── PAGINATION ───────────────────────────────────────────── */
+  .sector-search-pagination {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 24px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    justify-content: center;
+  }
+  .page-btn {
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--parchment);
+    cursor: pointer;
+    transition: all 0.18s;
+    background: var(--bg-panel);
+  }
+  .page-btn:hover, .page-btn.active {
+    background: var(--cg-deep); border-color: var(--cg-mid); color: var(--cream);
+  }
+
+  @media (max-width: 1000px) {
+    .sector-search-layout { grid-template-columns: 1fr; padding: 24px; }
+    .sector-grid { padding: 16px 24px; }
+    .sector-header { padding: 24px 24px 0; }
+    .history-panel { position: static; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+  <!-- ══ PAGE HEADER ══════════════════════════════════════════ -->
+  <div class="sector-header">
+    <p class="page-eyebrow">Sector Search</p>
+    <h1 class="page-title">Search by Sector or Industry</h1>
+    <p>
+      Filter determinations by industry. Select a sector below, then refine
+      with keywords, date range, or outcome type. Each sector card shows the
+      determination count and enforcement notice flag where applicable.
+    </p>
+  </div>
+
+  <!-- ══ SECTOR CARD GRID — generated from app.py SECTORS ═══ -->
+  <!-- data-sector values MUST match the sector strings in the DB exactly -->
+  <div class="sector-grid" id="sectorGrid">
+
+    <button class="sector-card all-card active" data-sector="all" onclick="selectSector(this)">
+      <span class="sector-card-name">All Sectors</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-all">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Banking &amp; Finance" onclick="selectSector(this)">
+      <span class="sector-card-name">Banking &amp; Finance</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-banking-finance">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Digital Lending" onclick="selectSector(this)">
+      <span class="sector-card-name">Digital Lending</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-digital-lending">—</strong> cases</span>
+        
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Betting &amp; Gaming" onclick="selectSector(this)">
+      <span class="sector-card-name">Betting &amp; Gaming</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-betting-gaming">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Children or Minors" onclick="selectSector(this)">
+      <span class="sector-card-name">Children or Minors</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-children-or-minors">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Insurance" onclick="selectSector(this)">
+      <span class="sector-card-name">Insurance</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-insurance">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="SACCOs" onclick="selectSector(this)">
+      <span class="sector-card-name">SACCOs</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-saccos">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Healthcare" onclick="selectSector(this)">
+      <span class="sector-card-name">Healthcare</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-healthcare">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Hospitality" onclick="selectSector(this)">
+      <span class="sector-card-name">Hospitality</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-hospitality">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Education" onclick="selectSector(this)">
+      <span class="sector-card-name">Education</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-education">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Logistics &amp; Transport" onclick="selectSector(this)">
+      <span class="sector-card-name">Logistics &amp; Transport</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-logistics-transport">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Telecommunications" onclick="selectSector(this)">
+      <span class="sector-card-name">Telecommunications</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-telecommunications">—</strong> cases</span>
+        
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Employment &amp; HR" onclick="selectSector(this)">
+      <span class="sector-card-name">Employment &amp; HR</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-employment-hr">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Real Estate" onclick="selectSector(this)">
+      <span class="sector-card-name">Real Estate</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-real-estate">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Government &amp; Public Sector" onclick="selectSector(this)">
+      <span class="sector-card-name">Government &amp; Public Sector</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-government-public-sector">—</strong> cases</span>        
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Media &amp; Marketing" onclick="selectSector(this)">
+      <span class="sector-card-name">Media &amp; Marketing</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-media-marketing">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Sports" onclick="selectSector(this)">
+      <span class="sector-card-name">Sports</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-sports-clubs">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Retail &amp; E-Commerce" onclick="selectSector(this)">
+      <span class="sector-card-name">Retail &amp; E-Commerce</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-retail-ecommerce">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Technology &amp; ICT" onclick="selectSector(this)">
+      <span class="sector-card-name">Technology &amp; ICT</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-technology-ict">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Manufacturing" onclick="selectSector(this)">
+      <span class="sector-card-name">Manufacturing</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-manufacturing">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Energy" onclick="selectSector(this)">
+      <span class="sector-card-name">Energy</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-energy">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="NGOs, CBOs, IGOs &amp; Non-Profits" onclick="selectSector(this)">
+      <span class="sector-card-name">NGOs, CBOs, IGOs &amp; Non-Profits</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-ngos-cbos-igos-non-profits">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Individuals" onclick="selectSector(this)">
+      <span class="sector-card-name">Individuals</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-individuals">—</strong> cases</span>
+      </div>
+    </button>
+
+    <button class="sector-card" data-sector="Other" onclick="selectSector(this)">
+      <span class="sector-card-name">Other</span>
+      <div class="sector-card-meta">
+        <span class="sector-card-count"><strong id="cnt-other">—</strong> cases</span>
+      </div>
+    </button>
+
+  </div>
+
+  <!-- ══ SEARCH + RESULTS ════════════════════════════════════ -->
+  <div class="sector-search-layout">
+
+    <!-- LEFT: Results column -->
+    <div>
+      <!-- Inline search bar -->
+      <div class="search-wrap" style="margin-bottom: 22px;">
+        <textarea
+          class="search-textarea"
+          id="sectorSearchInput"
+          placeholder="Refine within the selected sector — legal concept, technical term, party name, DPA section, complaint reference…"
+          rows="2"
+        ></textarea>
+        <div class="search-controls">
+          <select class="toggle-select" id="yearFilter">
+	    <option value="">Year ⟨⟩</option>
+	    <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+          </select>
+          <select class="toggle-select" id="monthFilter">
+            <option value="">Month ⟨⟩</option>
+            {% for m, label in [('01','January'),('02','February'),('03','March'),
+              ('04','April'),('05','May'),('06','June'),('07','July'),('08','August'),
+              ('09','September'),('10','October'),('11','November'),('12','December')] %}
+            <option value="{{ m }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <select class="toggle-select" id="outcomeFilter">
+            <option value="">Outcome ⟨⟩</option>
+ 	    <option value="Compensation Only">Compensation Only</option>
+	    <option value="Conditional Notice">Conditional Notice</option>
+            <option value="Enforcement Notice">Enf. Notice Only</option>
+            <option value="Compensation & Enforcement Notice">Compensation & Enf.N</option>
+	    <option value="Penalty Notice">Penalty Notice</option>
+            <option value="Dismissed">Dismissed</option>
+            <option value="Prosecution Recommended">Prosecution</option>
+            <option value="Compensation & Cease-Use Order">Compensation & Cease-Use</option>
+	    <option value="Compensation & Conditional Enforcement Notice">Compensation & Cond.EN</option>
+            <option value="Compensation & Prosecution Recommended">Compensation & Prosecution</option>
+            <option value="Compensation & Enforcement Notice & Prosecution Recommended">Compensation & Enf.N & Prosec.</option>
+          </select>
+          <button class="search-btn" onclick="doSectorSearch()">Search</button>
+        </div>
+      </div>
+
+      <!-- Active sector heading -->
+      <div class="active-sector-band" id="activeSectorBand" style="display:none;">
+        <span class="active-sector-name" id="activeSectorName"></span>
+        <span class="tag tag-cg" id="activeSectorCount"></span>
+        <span class="active-sector-sub" id="activeSectorSub"></span>
+      </div>
+
+      <!-- Status bar -->
+      <div class="status-bar" id="statusBar"></div>
+
+      <!-- Results area -->
+      <div class="results-area" id="resultsArea">
+        <div class="no-results" id="emptyState">
+          <div class="glyph">◎</div>
+          <p>Select a sector above to browse determinations,
+             or enter a search term to refine across all sectors.</p>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination" style="display:flex;">
+        <button class="page-btn">‹</button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">›</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: History panel -->
+    <aside class="history-panel">
+      <h3>Search History</h3>
+      <div id="historyList">
+        <p class="history-empty">Cases you open will appear here for quick access.</p>
+      </div>
+    </aside>
+  </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let activeSector = 'all';
+let currentPage = 1;
+let currentTotalPages = 1;
+let lastSectorData = null;
+
+/* ── SECTOR CARD SELECT ──────────────────────────── */
+function selectSector(card) {
+  document.querySelectorAll('.sector-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  activeSector = card.dataset.sector;
+
+  const band = document.getElementById('activeSectorBand');
+  if (activeSector === 'all') {
+    band.style.display = 'none';
+  } else {
+    document.getElementById('activeSectorName').textContent = activeSector;
+    band.style.display = 'flex';
+  }
+
+  doSectorSearch();
+}
+
+/* ── SECTOR SEARCH ───────────────────────────────── */
+function doSectorSearch(isPageChange = false) {
+  if (!isPageChange) currentPage = 1;
+  const q       = document.getElementById('sectorSearchInput').value.trim();
+  const year    = document.getElementById('yearFilter').value;
+  const month   = document.getElementById('monthFilter').value;
+  const outcome = document.getElementById('outcomeFilter').value;
+  const params  = new URLSearchParams({ q, sector: activeSector, year, month, outcome, page: currentPage });
+
+  const area = document.getElementById('resultsArea');
+  document.getElementById('emptyState')?.remove();
+  area.innerHTML = [1,2,3].map(() => '<div class="card-skeleton"></div>').join('');
+
+  // Hide old static pagination while loading
+  const existingPag = document.getElementById('pagination');
+  if (existingPag) existingPag.style.display = 'none';
+
+  fetch(`/api/search?${params}`)
+    .then(r => r.json())
+    .then(data => {
+      lastSectorData = data;
+      renderSectorResults();
+    })
+    .catch(() => {
+      area.innerHTML = `<div class="no-results">
+        <div class="glyph">⚠</div><p>Search error. Please try again.</p>
+      </div>`;
+    });
+}
+
+/* ── RENDER RESULTS ──────────────────────────────── */
+function renderSectorResults() {
+  const data = lastSectorData;
+  const area = document.getElementById('resultsArea');
+  currentTotalPages = data.total_pages || Math.ceil((data.total || 0) / 10);
+
+  if (data.sector_counts) {
+    for (const [sector, count] of Object.entries(data.sector_counts)) {
+      const slug = sector.toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-');
+      const el   = document.getElementById(`cnt-${slug}`);
+      if (el) el.textContent = count;
+    }
+    const allEl = document.getElementById('cnt-all');
+    if (allEl) allEl.textContent = data.total_corpus || '—';
+  }
+
+  const badge = document.getElementById('activeSectorCount');
+  const sub   = document.getElementById('activeSectorSub');
+  if (badge) badge.textContent = `${data.total || 0} cases`;
+  if (sub)   sub.textContent   = data.total > 0
+    ? `KES ${data.highest_quantum?.toLocaleString() || '—'} highest award` : '';
+
+  if (!data.results || data.results.length === 0) {
+    area.innerHTML = `<div class="no-results">
+      <div class="glyph">◎</div>
+      <p>No determinations matched your filters.
+         Try a different sector or remove keyword constraints.</p>
+    </div>`;
+    return;
+  }
+
+  area.innerHTML = data.results.map((c, i) => buildSectorCard(c, i)).join('');
+
+  // Remove old pagination, inject fresh dynamic one
+  const oldPag = document.getElementById('pagination');
+  if (oldPag) oldPag.remove();
+  if (data.total > 10) {
+    area.insertAdjacentHTML('afterend', buildPagination());
+  }
+
+  area.querySelectorAll('.card-title').forEach(link => {
+    link.addEventListener('click', () => addHistory(link.textContent, link.href));
+  });
+}
+
+/* ── PAGINATION ──────────────────────────────────── */
+function buildPagination() {
+  if (currentTotalPages <= 1) return '';
+
+  const prev = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''}
+    onclick="changePage(${currentPage - 1})">‹</button>`;
+
+  const next = `<button class="page-btn" ${currentPage === currentTotalPages ? 'disabled' : ''}
+    onclick="changePage(${currentPage + 1})">›</button>`;
+
+  let pages = '';
+  for (let p = 1; p <= currentTotalPages; p++) {
+    if (p === 1 || p === currentTotalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
+      pages += `<button class="page-btn ${p === currentPage ? 'active' : ''}"
+        onclick="changePage(${p})">${p}</button>`;
+    } else if (p === currentPage - 2 || p === currentPage + 2) {
+      pages += `<span class="page-ellipsis">…</span>`;
+    }
+  }
+
+  return `<div class="sector-search-pagination" id="pagination">${prev}${pages}${next}</div>`;
+}
+
+function changePage(newPage) {
+  if (newPage < 1 || newPage > currentTotalPages) return;
+  currentPage = newPage;
+  doSectorSearch(true);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+  /* ── BUILD CASE CARD ─────────────────────────────── */
+function buildSectorCard(c, i) {
+  const delay    = i * 55;
+  const outcome  = c.outcome_type
+    ? `<div class="card-outcome-badge"><span class="outcome-tag outcome-tag-${outcomeSeverity(c.outcome_type)}">[${c.outcome_type.toUpperCase()}]</span></div>`
+    : '';
+  const citations = c.citations
+    ? `<div class="card-citations"><strong>Citations:</strong> ${c.citations}</div>` : '';
+  const quantum  = c.quantum
+    ? `<span><strong>Award:</strong> <span class="quantum-highlight">KES ${Number(c.quantum).toLocaleString()}</span></span>` : '';
+
+  return `
+  <div class="case-card" style="animation-delay:${delay}ms; position:relative;">
+    ${outcome}
+    <div class="card-index">${String(i+1).padStart(2,'0')} </div>
+    <a href="/case/${c.id}" class="card-title">${c.title}</a>
+    <div class="card-meta">
+      <span><strong>Ref:</strong> ${c.case_ref || '—'}</span>
+      ${c.date ? `<span><strong>Date:</strong> ${c.date}</span>` : ''}
+      ${quantum}
+    </div>
+    ${citations}
+    ${c.theme ? `<div class="card-theme">${c.theme}</div>` : ''}
+    ${c.summary ? `<p class="card-summary">${c.summary}</p>` : ''}
+  </div>`;
+}
+
+  const OUTCOME_SEVERITY = {
+  'dismissed':                                                  'neutral',
+  'resolved':                                                   'neutral',
+  'compensation only':                                          'remedial',
+  'enforcement notice':                                         'regulatory',
+  'conditional enforcement notice':                             'regulatory',
+  'penalty notice':                                             'regulatory',
+  'compensation & enforcement notice':                          'regulatory',
+  'compensation & conditional enforcement notice':              'regulatory',
+  'prosecution recommended':                                    'severe',
+  'compensation & prosecution recommended':                     'severe',
+  'compensation & enforcement notice & prosecution recommended':'severe',
+};
+
+function outcomeSeverity(ot) {
+  const key = (ot || '').trim().toLowerCase();
+  const tier = OUTCOME_SEVERITY[key];
+  if (!tier) {
+    console.warn('Unmapped outcome_type, defaulting to neutral severity:', ot);
+    return 'neutral';
+  }
+  return tier;
+}
+
+  /* ── SEARCH HISTORY ──────────────────────────────── */
+  const history = [];
+  function addHistory(title, href) {
+    if (history.find(h => h.href === href)) return;
+    history.unshift({ title, href });
+    if (history.length > 12) history.pop();
+    document.getElementById('historyList').innerHTML = history.map(h => `
+      <div class="history-item">
+        <a href="${h.href}">${h.title}</a>
+      </div>`).join('');
+  }
+
+  /* ── ENTER KEY ───────────────────────────────────── */
+  document.getElementById('sectorSearchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSectorSearch(); }
+  });
+
+  /* ── LOAD CORPUS COUNTS + INITIAL RESULTS ────────── */
+  fetch('/api/corpus-stats')
+    .then(r => r.json())
+    .then(data => {
+      if (!data.by_sector) return;
+      function toSlug(s) {
+        return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      }
+      document.getElementById('cnt-all').textContent = data.total_cases || '—';
+      for (const [sector, count] of Object.entries(data.by_sector)) {
+        const el = document.getElementById(`cnt-${toSlug(sector)}`);
+        if (el) el.textContent = count;
+      }
+    })
+    .catch(() => {});
+
+  // Show all cases on page load (browse mode, no filter)
+  doSectorSearch();
+</script>
+{% endblock %}

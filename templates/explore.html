@@ -1,0 +1,845 @@
+{% extends "base.html" %}
+
+{% block title %}Explore{% endblock %}
+{% block meta_description %}Search all ODPC determinations in natural language — legal concepts, technical terms, party names, complaint numbers, DPA sections.{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── EXPLORE LAYOUT ───────────────────────────────────────── */
+  .explore-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* LEFT: search + results column */
+  .explore-main {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── SEARCH INPUT ZONE ──────────────────────────────────── */
+  .explore-input-zone {
+    padding: 40px 48px 32px;
+    border-bottom: 1px solid var(--border);
+    background:
+      radial-gradient(ellipse 80% 100% at 50% -20%, rgba(0,229,160,0.04) 0%, transparent 60%),
+      var(--bg);
+  }
+
+  .explore-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--cg-mid);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .explore-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 20px; height: 1px;
+    background: var(--cg-mid);
+  }
+
+  .explore-heading {
+    font-family: var(--font-display);
+    font-size: 1.65rem;
+    font-weight: 600;
+    color: var(--cream);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .explore-sub {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--parchment);
+    opacity: 0.7;
+    margin-bottom: 24px;
+    max-width: 520px;
+    line-height: 1.7;
+  }
+
+  /* The main search textarea — large, inviting */
+  .explore-textarea {
+    background: var(--bg);
+    border: 1px solid var(--cg-bright);
+    color: var(--cream);
+    padding: 20px 22px;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 1.1rem;
+    resize: none;
+    min-height: 110px;
+    border-radius: 3px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+  .explore-textarea::placeholder {
+    color: var(--earth-warm);
+    opacity: 0.55;
+  }
+  .explore-textarea:focus {
+    outline: none;
+    border-color: var(--cg-mid);
+    box-shadow: 0 0 0 4px rgba(0,229,160,0.06);
+  }
+
+  /* Inline search controls row */
+  .explore-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .explore-btn {
+    background: var(--bg-panel);
+    color: var(--cream);
+    padding: 9px 28px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 700;
+    border-radius: 2px;
+    border: 1px solid var(--cg-bright);
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    margin-left: auto;
+  }
+  .explore-btn:hover {
+    background: var(--cg-mid);
+    box-shadow: 0 0 18px rgba(0,229,160,0.25);
+  }
+
+  /* Character count / debounce indicator */
+  .search-indicator {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--earth-warm);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .live-dot.active { background: var(--accent-cyan); }
+  .live-dot.loading {
+    background: var(--alert-red);/*(--alert-amber);*/
+    animation: pulse 0.9s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  
+
+  /* ── HINT CHIPS ─────────────────────────────────────── */
+  .hint-section {
+    padding: 18px 48px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .hint-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--offwhite);
+    flex-shrink: 0;
+  }
+
+  .hint-chip {
+    padding: 4px 12px;
+    font-family: var(--font-mono);
+    font-size: 0.83rem;
+    letter-spacing: 0.06em;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--bg); /*(--parchment);*/
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
+  .hint-chip:hover {
+    border-color: var(--cg-mid);
+    color: var(--cg-bright);
+    background: rgba(0,229,160,0.04);
+  }
+
+  /* ── RESULTS ZONE ───────────────────────────────────── */
+  .explore-results-zone {
+    flex: 1;
+    padding: 28px 48px 40px;
+    overflow-y: auto;
+  }
+
+  .results-meta-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .results-count-text {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--earth-warm);
+  }
+  .results-count-text strong { color: var(--alert-amber); } /*(--cg-bright); }*/
+
+  .sort-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--earth-warm);
+    letter-spacing: 0.06em;
+  }
+
+  /* Explore-specific card — stacked band layout */
+  .explore-result-band {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .explore-card {
+    background: var(--bg-panel); /*(--bg-card);*/
+    border-bottom: 1px solid var(--border);
+    border-left: 3px solid transparent;
+    padding: 20px 24px;
+    transition: border-left-color 0.2s, background 0.2s;
+    animation: cardIn 0.3s var(--ease-out) both;
+    position: relative;
+  }
+  .explore-card:last-child { border-bottom: none; }
+  .explore-card:hover {
+    border-left-color: var(--cg-mid);
+    background: rgba(0,229,160,0.02);
+  }
+
+  .explore-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .explore-card-title {
+    font-family: var(--font-display);
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--alert-amber); /*(--cg-bright);*/
+    transition: color 0.2s;
+    flex: 1;
+  }
+  .explore-card-title:hover { color: var(--cream); }
+
+  .explore-card-ref {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--earth-warm);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .explore-card-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .explore-card-meta span {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--parchment);
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+  .explore-card-meta strong { color: var(--earth-light); }
+
+  /* Matched fields — show what was hit */
+  .match-fields {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .match-field {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    padding: 2px 7px;
+    border-radius: 2px;
+    border: 1px solid rgba(0,229,160,0.2);
+    color: var(--cg-mid);
+    background: (0,229,160,0.05);
+    letter-spacing: 0.06em;
+  }
+
+  .explore-card-theme {
+    font-family: var(--font-display);
+    font-style: bold;
+    font-size: 0.88rem;
+    color: var(--alert-blue); /*(--pitch-black); */
+    padding-left: 10px;
+    border-left: 2px solid var(--cg-deep);
+    margin: 8px 0;
+    line-height: 1.5;
+  }
+
+  .explore-card-summary {
+    font-size: 0.8rem;
+    color: var(--pitch-black); /**/
+    line-height: 1.7;
+    opacity: 0.82;
+  }
+
+  /* Pagination */
+  .explore-pagination {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 24px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    justify-content: center;
+  }
+  .page-btn {
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--parchment);
+    cursor: pointer;
+    transition: all 0.18s;
+    background: var(--bg-panel);
+  }
+  .page-btn:hover, .page-btn.active {
+    background: var(--cg-deep);
+    border-color: var(--cg-mid);
+    color: var(--cream);
+  }
+
+  /* Empty / loading states */
+  .explore-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 260px;
+    text-align: center;
+    gap: 14px;
+    opacity: 0.6;
+  }
+  .explore-empty .glyph {
+    font-size: 2.4rem;
+    opacity: 0.3;
+  }
+  .explore-empty p {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--earth-warm);
+    max-width: 340px;
+    line-height: 1.75;
+  }
+
+  /* ── RIGHT SIDEBAR ──────────────────────────────────── */
+  .explore-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--bg-panel);
+  }
+
+  .sidebar-block {
+    padding: 22px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-block h3 {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--earth-light);
+    margin-bottom: 14px;
+  }
+
+  /* History items */
+  .history-item {
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(196,154,108,0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .history-item:last-child { border-bottom: none; }
+  .history-item a {
+    color: var(--cg-mid);
+    font-size: 0.74rem;
+    transition: color 0.15s;
+    line-height: 1.35;
+  }
+  .history-item a:hover { color: var(--cg-bright); }
+  .history-item-meta {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--earth-warm);
+  }
+
+  .sidebar-empty {
+    font-size: 0.73rem;
+    color: var(--earth-warm);
+    font-style: italic;
+    opacity: 0.65;
+    line-height: 1.65;
+  }
+
+  /* Corpus filter quick-links */
+  .filter-list { display: flex; flex-direction: column; gap: 6px; }
+  .filter-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-body); /*(--font-mono);*/
+    font-size: 0.68rem;
+    color: var(--parchment);
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(196,154,108,0.06);
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .filter-link:last-child { border-bottom: none; }
+  .filter-link:hover { color: var(--cg-bright); }
+  .filter-link-count {
+    font-size: 0.6rem;
+    color: var(--earth-warm);
+  }
+
+  @media (max-width: 1000px) {
+    .explore-wrapper { grid-template-columns: 1fr; }
+    .explore-main { border-right: none; }
+    .explore-sidebar { border-top: 1px solid var(--border); }
+  }
+  @media (max-width: 640px) {
+    .explore-input-zone { padding: 28px 20px 24px; }
+    .explore-results-zone { padding: 20px 20px 32px; }
+    .hint-section { padding: 14px 20px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="explore-wrapper">
+
+  <!-- ═══ LEFT: MAIN SEARCH COLUMN ════════════════════════════ -->
+  <div class="explore-main">
+
+    <!-- INPUT ZONE -->
+    <div class="explore-input-zone">
+      <p class="explore-eyebrow">Explore</p>
+      <h1 class="explore-heading">Ask the Corpus</h1>
+      <p class="explore-sub">
+        Use natural language — legal concepts, technical terms, DPA sections,
+        party names, or complaint references.
+      </p>
+
+      <textarea
+        class="explore-textarea"
+        id="exploreInput"
+        placeholder="e.g. &quot;SMS marketing&quot; · &quot;commercial use of image without consent&quot; · &quot;Section 37&quot; · &quot;Pexels stock photo&quot; · &quot;consent burden not discharged&quot;…"
+        rows="4"
+      ></textarea>
+
+      <div class="explore-controls">
+        <div class="search-indicator">
+          <div class="live-dot" id="liveDot"></div>
+          <span id="searchIndicatorText">Type to search</span>
+        </div>
+        <select class="toggle-select" id="yearFilter">
+          <option value="">Year ⟨⟩</option>
+	  <option value="2026">2026</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+        </select>
+        <select class="toggle-select" id="outcomeFilter">
+          <option value="">Outcome ⟨⟩</option>
+          <option value="Compensation Only">Compensation Only</option>
+	  <option value="Conditional Notice">Conditional Notice</option>
+          <option value="Enforcement Notice">Enforcement Notice</option>
+          <option value="Compensation & Enforcement Notice">Compensation & EN</option>
+	  <option value="Penalty Notice">Penalty Notice</option>
+          <option value="Dismissed">Dismissed</option>
+          <option value="Prosecution Recommended">Prosecution</option>
+          <option value="Compensation & Cease-Use Order">Compensation & Cease-Use</option>
+	  <option value="Compensation & Conditional Enforcement Notice">Compensation & Cond.EN</option>
+          <option value="Compensation & Prosecution Recommended">Compensation & Prosecution</option>
+          <option value="Compensation & Enforcement Notice & Prosecution Recommended">Compensation & Enf.N & Prosec.</option>
+
+        </select>
+        <button class="explore-btn" id="exploreBtn" onclick="doExploreSearch()">Search</button>
+      </div>
+    </div>
+
+    <!-- HINT CHIPS -->
+    <div class="hint-section" id="hintSection">
+      <span class="hint-label">Try:</span>
+      <button class="hint-chip" onclick="setHint(this)">photos</button>
+      <button class="hint-chip" onclick="setHint(this)">marketing SMS</button>
+      <button class="hint-chip" onclick="setHint(this)">phone calls</button>
+      <button class="hint-chip" onclick="setHint(this)">commercial use</button>
+      <button class="hint-chip" onclick="setHint(this)">improper consent</button>
+      <button class="hint-chip" onclick="setHint(this)">unauthorised disclosure</button>
+
+    </div>
+
+    <!-- STATUS BAR -->
+    <div class="status-bar" id="statusBar"></div>
+
+    <!-- RESULTS ZONE -->
+    <div class="explore-results-zone" id="exploreResultsZone">
+
+      <!-- empty / default state -->
+      <div class="explore-empty" id="exploreEmpty">
+        <div class="glyph">◎</div>
+        <p>
+          Enter a search term above or click a hint chip to begin.
+          Results draw from determinations, merits, technical summaries,
+          violations, and glossary terms across the full corpus.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ RIGHT: SIDEBAR ══════════════════════════════════════ -->
+  <aside class="explore-sidebar">
+
+    <!-- Search History -->
+    <div class="sidebar-block">
+      <h3>Search History</h3>
+      <div id="historyList">
+        <p class="sidebar-empty">Cases you open will appear here for quick return access.</p>
+      </div>
+    </div>
+
+    <!-- Corpus Quick Filters -->
+    <div class="sidebar-block">
+      <h3>Corpus Snapshot</h3>
+      <div class="filter-list">
+        <div class="filter-link" onclick="setHint(this, 'Digital Lending')">
+          Digital Lending <span class="filter-link-count" id="cnt-digital-lending">—</span>
+        </div>
+        <div class="filter-link" onclick="setHint(this, 'Banking & Finance')">
+          Banking &amp; Finance <span class="filter-link-count" id="cnt-banking-finance">—</span>
+        </div>
+        <div class="filter-link" onclick="setHint(this, 'SACCOs')">
+          SACCOs <span class="filter-link-count" id="cnt-saccos">—</span>
+        </div>
+        <div class="filter-link" onclick="setHint(this, 'Children or Minors')">
+          Children or Minors <span class="filter-link-count" id="cnt-children-or-minors">—</span>
+        </div>
+        <div class="filter-link" onclick="setHint(this, 'Retail or E-Commerce')">
+          Retail &amp; E-Commerce <span class="filter-link-count" id="cnt-retail-ecommerce">—</span>
+        </div>
+        <div class="filter-link" onclick="setHint(this, 'Betting & Gaming')">
+          Betting &amp; Gaming <span class="filter-link-count" id="cnt-betting-gaming">—</span>
+        </div>
+        <div class="filter-link" onclick="setHint(this, 'Healthcare')">
+          Healthcare <span class="filter-link-count" id="cnt-healthcare">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Landmark Cases (static curated links) -->
+    <div class="sidebar-block">
+      <h3>Landmark Cases</h3>
+      <div id="landmarkList">
+        {% for lm in landmark_cases %}
+        <div class="history-item">
+          <a href="/case/{{ lm.id }}">{{ lm.title }}</a>
+          <span class="history-item-meta">{{ lm.sector }} · {{ lm.year }}</span>
+        </div>
+        {% else %}
+        <p class="sidebar-empty">Landmark determinations will appear here.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+  </aside>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+<script>
+/* ── DEBOUNCED LIVE SEARCH ────────────────────────────── */
+let debounceTimer = null;
+let lastQuery = '';
+let currentPage = 1;
+let currentTotalPages = 1;
+let lastData = null;
+
+const input    = document.getElementById('exploreInput');
+const dot      = document.getElementById('liveDot');
+const indText  = document.getElementById('searchIndicatorText');
+
+input.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  const val = input.value.trim();
+  if (val.length < 3) {
+    dot.className = 'live-dot';
+    indText.textContent = val.length ? `${val.length} chars — keep typing` : 'Type to search';
+    return;
+  }
+  dot.className = 'live-dot loading';
+  indText.textContent = 'Searching…';
+  debounceTimer = setTimeout(() => {
+    if (val !== lastQuery) { lastQuery = val; doExploreSearch(); }
+  }, 340);
+});
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    clearTimeout(debounceTimer);
+    doExploreSearch();
+  }
+});
+
+/* ── HINT CHIPS ──────────────────────────────────────── */
+function setHint(el, text) {
+  const t = text || el.textContent.trim();
+  input.value = t;
+  input.focus();
+  lastQuery = '';
+  doExploreSearch();
+}
+
+/* ── FETCH SEARCH ────────────────────────────────────── */
+function doExploreSearch(isPageChange = false) {
+  if (!isPageChange) currentPage = 1;
+  const q       = input.value.trim();
+  const year    = document.getElementById('yearFilter').value;
+  const outcome = document.getElementById('outcomeFilter').value;
+  if (!q) return;
+
+  const params = new URLSearchParams({ q, year, outcome, source: 'explore', page: currentPage });
+  const zone   = document.getElementById('exploreResultsZone');
+
+  dot.className = 'live-dot loading';
+  indText.textContent = 'Searching…';
+  document.getElementById('exploreEmpty')?.remove();
+
+  // Skeleton shimmer while loading
+  zone.innerHTML = [1,2,3,4].map(() =>
+    '<div class="card-skeleton" style="margin-bottom:1px;height:120px;border-radius:0;"></div>'
+  ).join('');
+
+  fetch(`/api/search?${params}`)
+    .then(r => r.json())
+    .then(data => {
+      lastData = data;
+      dot.className = data.total > 0 ? 'live-dot active' : 'live-dot';
+      indText.textContent = data.total > 0
+        ? `${data.total} result${data.total !== 1 ? 's' : ''}`
+        : 'No results';
+     renderExploreResults();
+   })
+    .catch(() => {
+      dot.className = 'live-dot';
+      indText.textContent = 'Error — try again';
+      zone.innerHTML = `<div class="explore-empty">
+        <div class="glyph">⚠</div>
+        <p>Search error. Please try again.</p>
+      </div>`;
+    });
+}
+
+
+/* ── RENDER ──────────────────────────────────────────── */
+
+function renderExploreResults() {
+  const zone = document.getElementById('exploreResultsZone');
+  const data = lastData;   // ← single line restores all references below unchanged
+  currentTotalPages = data.total_pages || Math.ceil(data.total / PER_PAGE);
+
+  if (!data.results || data.results.length === 0) {
+    zone.innerHTML = `<div class="explore-empty">
+      <div class="glyph"> ◎  </div>
+      <p>No determinations matched. Try broader terms — the corpus search looks across
+         merits, technical summaries, violations, and glossary terms.</p>
+    </div>`;
+    return;
+  }
+
+  const band = document.createElement('div');
+  band.className = 'explore-result-band';
+
+  const meta = `
+    <div class="results-meta-bar">
+      <span class="results-count-text">
+        <strong>${data.total}</strong> determination${data.total !== 1 ? 's' : ''} found
+      </span>
+      <div class="sort-control">
+        <span>Sort:</span>
+        <select class="toggle-select" style="padding:4px 24px 4px 8px; font-size:0.6rem;">
+          <option>Relevance</option>
+          <option>Date (newest)</option>
+          <option>Quantum (highest)</option>
+        </select>
+      </div>
+    </div>`;
+
+  const cards = data.results.map((c, i) => buildExploreCard(c, i)).join('');
+  const pag   = data.total > 10 ? buildPagination() : '';
+
+  zone.innerHTML = meta;
+  zone.appendChild(band);
+  band.innerHTML = cards;
+  zone.insertAdjacentHTML('beforeend', pag);
+
+  // Bind history
+  zone.querySelectorAll('.explore-card-title').forEach(link => {
+    link.addEventListener('click', () => addHistory(link.textContent, link.href));
+  });
+}
+
+function buildExploreCard(c, i) {
+  const delay     = i * 50;
+  const matchTags = (c.matched_fields || [])
+    .map(f => `<span class="match-field">${f}</span>`).join('');
+  const theme     = c.theme
+    ? `<div class="explore-card-theme">${c.theme}</div>` : '';
+  const summary   = c.summary
+    ? `<p class="explore-card-summary">${c.summary}</p>` : '';
+  const sector    = c.sector
+    ? `<span><strong>Sector:</strong> ${c.sector}</span>` : '';
+  const quantum   = c.quantum
+    ? `<span><strong>Award:</strong> KES ${Number(c.quantum).toLocaleString()}</span>` : '';
+
+  return `
+  <div class="explore-card" style="animation-delay:${delay}ms">
+    <div class="explore-card-header">
+      <a href="/case/${c.id}" class="explore-card-title">${c.title}</a>
+      <span class="explore-card-ref">${c.case_ref || ''}</span>
+    </div>
+    <div class="explore-card-meta">
+      ${sector}
+      ${c.date ? `<span><strong>Date:</strong> ${c.date}</span>` : ''}
+      ${quantum}
+      ${c.outcome_type ? `<span><strong>Outcome:</strong> ${c.outcome_type}</span>` : ''}
+    </div>
+    ${matchTags ? `<div class="match-fields">${matchTags}</div>` : ''}
+    ${theme}
+    ${summary}
+  </div>`;
+}
+
+
+function buildPagination() {
+  if (currentTotalPages <= 1) return '';
+
+  const prev = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''}
+    onclick="changePage(${currentPage - 1})">‹</button>`;
+
+  const next = `<button class="page-btn" ${currentPage === currentTotalPages ? 'disabled' : ''}
+    onclick="changePage(${currentPage + 1})">›</button>`;
+
+  let pages = '';
+  for (let p = 1; p <= currentTotalPages; p++) {
+    if (
+      p === 1 ||
+      p === currentTotalPages ||
+      (p >= currentPage - 1 && p <= currentPage + 1)
+    ) {
+      pages += `<button class="page-btn ${p === currentPage ? 'active' : ''}"
+        onclick="changePage(${p})">${p}</button>`;
+    } else if (p === currentPage - 2 || p === currentPage + 2) {
+      pages += `<span class="page-ellipsis">…</span>`;
+    }
+  }
+
+  return `<div class="explore-pagination" id="pagination">${prev}${pages}${next}</div>`;
+}
+
+function changePage(newPage) {
+  if (newPage < 1 || newPage > currentTotalPages) return;
+  currentPage = newPage;
+  doExploreSearch(true);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+
+/* ── HISTORY ─────────────────────────────────────────── */
+const searchHistory = [];
+function addHistory(title, href) {
+  if (searchHistory.find(h => h.href === href)) return;
+  searchHistory.unshift({ title, href });
+  if (searchHistory.length > 12) searchHistory.pop();
+  const list = document.getElementById('historyList');
+  list.innerHTML = searchHistory.map(h => `
+    <div class="history-item">
+      <a href="${h.href}">${h.title}</a>
+    </div>`).join('');
+}
+
+/* ── CORPUS COUNTS (load on page ready) ─────────────── */
+fetch('/api/corpus-stats')
+  .then(r => r.json())
+  .then(data => {
+    const map = {
+      'digital-lending': 'Digital Lending',
+      'banking-finance': 'Banking & Finance',
+      'saccos':		 'SACCOs',
+      'healthcare':      'Healthcare',
+      'retail-ecommerce':'Retail & E-Commerce',
+      'children-or-minors': 'Children or Minors',
+      'betting-gaming':	 'Betting & Gaming',
+    };
+    for (const [slug, label] of Object.entries(map)) {
+      const el = document.getElementById(`cnt-${slug}`);
+      if (el && data.by_sector) {
+        el.textContent = data.by_sector[label] || '—';
+      }
+    }
+  })
+  .catch(() => {}); // silently fail — counts are cosmetic
+</script>
+{% endblock %}

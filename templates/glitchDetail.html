@@ -1,0 +1,740 @@
+{% extends "base.html" %}
+
+{% block title %}glitch_ — {{ entry.case_title }}{% endblock %}
+{% block meta_description %}glitch_ analysis: {{ entry.case_title }} — {{ entry.incident_type }}{% endblock %}
+
+{% block extra_css %}
+<style>
+
+  /* glitch_-exclusive accent — matches glitch.html. Keep these two
+     files' accent values in sync; if pweza.css gains a real token
+     for this later, swap both. */
+  :root {
+    --glitch-accent: #5B6B7A;
+    --glitch-accent-soft: rgba(91,107,122,0.12);
+    --glitch-accent-mid: rgba(91,107,122,0.35);
+  }
+
+  /* ── GLITCH DETAIL HEADER ─────────────────────────────────── */
+  .gd-header {
+    padding: 32px 48px 28px;
+    border-bottom: 1px solid rgba(245,166,35,0.15);
+    background:
+      radial-gradient(ellipse 70% 60% at 100% 0%, rgba(245,166,35,0.05) 0%, transparent 60%),
+      var(--bg);
+  }
+
+  .gd-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--alert-amber);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .gd-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 18px;
+    height: 1px;
+    background: var(--alert-amber);
+  }
+
+  .gd-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 800;
+    color: var(--cream);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+
+  /* Case reference line */
+  .gd-case-ref {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--parchment);
+    margin-bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    align-items: center;
+  }
+
+  .gd-case-ref strong { color: var(--earth-light); }
+
+  .gd-case-link {
+    color: var(--cg-mid);
+    border-bottom: 1px solid rgba(0,196,122,0.3);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    transition: color 0.15s;
+  }
+  .gd-case-link:hover { color: var(--cg-bright); }
+
+  /* Theme tags row */
+  .gd-themes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  /* Layer tags row — bracket-tag style, matches glitch.html cards.
+     Replaces the old boxed .gd-layer-badge so the same data reads
+     identically on the list and the detail page. */
+  .gd-layers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .gd-layer-tag {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+
+  /* Overview preview — extracted from technical_failure opening */
+  .gd-overview {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--parchment);
+    line-height: 1.8;
+    max-width: 720px;
+    opacity: 0.85;
+    padding-left: 14px;
+    border-left: 2px solid var(--glitch-accent-mid);
+  }
+
+  /* ── LAYOUT: 2-column below header ───────────────────────── */
+  .gd-body {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 0;
+    flex: 1;
+  }
+
+  /* ── LEFT: PANEL ZONE ─────────────────────────────────────── */
+  .gd-main {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* Band strip — same piano key style as caseDetail, but each tab
+     carries a data-tone that controls its active colour, so the
+     three bands can escalate instead of reading as identical. */
+  .gd-strip {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-panel);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .gd-strip::-webkit-scrollbar { display: none; }
+
+  .gd-btn {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 14px 22px;
+    color: var(--parchment);
+    border-right: 1px solid var(--border);
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: color 0.18s, border-color 0.18s, background 0.18s;
+    white-space: nowrap;
+  }
+
+  /* Tone 1 — Technical Failure: flattest, glitch-accent, thin */
+  .gd-btn[data-tone="1"]:hover { color: var(--glitch-accent); background: var(--glitch-accent-soft); }
+  .gd-btn[data-tone="1"].active {
+    color: var(--glitch-accent);
+    border-bottom-color: var(--glitch-accent);
+    background: var(--glitch-accent-soft);
+  }
+
+  /* Tone 2 — Regulatory Signal: the one band where amber is allowed */
+  .gd-btn[data-tone="2"]:hover { color: var(--alert-amber); background: rgba(245,166,35,0.04); }
+  .gd-btn[data-tone="2"].active {
+    color: var(--alert-amber);
+    border-bottom-color: var(--alert-amber);
+    border-bottom-width: 4px;
+    background: rgba(245,166,35,0.05);
+  }
+
+  /* Tone 3 — Macro Pattern: widest / heaviest, glitch-accent, zoomed out */
+  .gd-btn[data-tone="3"]:hover { color: var(--glitch-accent); background: var(--glitch-accent-soft); }
+  .gd-btn[data-tone="3"].active {
+    color: var(--glitch-accent);
+    border-bottom-color: var(--glitch-accent);
+    border-bottom-width: 5px;
+    background: var(--glitch-accent-soft);
+  }
+
+  /* Panel content area */
+  .gd-panel {
+    padding: 36px 48px;
+    flex: 1;
+    animation: gdFadeIn 0.2s ease both;
+  }
+
+  @keyframes gdFadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Idle state */
+  .gd-idle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+    gap: 14px;
+    opacity: 0.4;
+    text-align: center;
+  }
+
+  .gd-idle .glyph { font-size: 2rem; }
+
+  .gd-idle p {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--earth-warm);
+    max-width: 300px;
+  }
+
+  /* Band label — shown above each panel's content. Colour + index
+     number come from BANDS[name] at render time (see script below),
+     giving the 01/02/03 escalation instead of a fixed amber dot. */
+  .gd-band-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .gd-band-index {
+    font-weight: 700;
+  }
+
+  /* Prose body — mono, matching the terminal/log-readout direction
+     for glitch_. Narrower max-width than the old sans/serif body
+     since mono runs wider per character. */
+  .gd-prose {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--parchment);
+    line-height: 1.85;
+    max-width: 620px;
+  }
+
+  .gd-prose p + p { margin-top: 1.1em; }
+
+  /* Inline pull-quote — reserved for genuinely regulatory-significant
+     lines; kept amber since it inherits the tone-2 meaning. */
+  .gd-pullquote {
+    margin: 20px 0;
+    padding: 14px 20px;
+    background: rgba(245,166,35,0.05);
+    border-left: 3px solid var(--alert-amber);
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--offwhite);
+    line-height: 1.6;
+  }
+
+  /* ── RIGHT: KEYWORD SIDEBAR ───────────────────────────────── */
+  .gd-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--bg-panel);
+  }
+
+  .gd-sidebar-block {
+    padding: 20px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .gd-sidebar-block:last-child { border-bottom: none; }
+
+  .gd-sidebar-heading {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--earth-light);
+    margin-bottom: 14px;
+  }
+
+  /* Case metadata block */
+  .gd-meta-list { display: flex; flex-direction: column; gap: 0; }
+
+  .gd-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(196,154,108,0.06);
+    gap: 10px;
+  }
+
+  .gd-meta-row:last-child { border-bottom: none; }
+
+  .gd-meta-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--earth-warm);
+    flex-shrink: 0;
+  }
+
+  .gd-meta-value {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    color: var(--cream);
+    text-align: right;
+  }
+
+  /* Keywords — terms from technical_terms table */
+  .gd-keywords { display: flex; flex-direction: column; gap: 10px; }
+
+  .gd-keyword-item {
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(196,154,108,0.06);
+  }
+
+  .gd-keyword-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .gd-keyword-term {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--cg-bright);
+    margin-bottom: 3px;
+  }
+
+  .gd-keyword-def {
+    font-size: 0.75rem;
+    color: var(--parchment);
+    line-height: 1.6;
+    opacity: 0.82;
+  }
+
+  /* Citations — cross-case links */
+  .gd-citation-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .gd-citation-item {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    color: var(--parchment);
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(196,154,108,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .gd-citation-item:last-child { border-bottom: none; }
+
+  .gd-citation-ref {
+    color: var(--cg-mid);
+    transition: color 0.15s;
+    cursor: pointer;
+  }
+  .gd-citation-ref:hover { color: var(--cg-bright); }
+
+  .gd-citation-type {
+    font-size: 0.58rem;
+    color: var(--earth-warm);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Violations summary in sidebar */
+  .gd-violation-item {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(196,154,108,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .gd-violation-item:last-child { border-bottom: none; }
+
+  .gd-violation-section {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--alert-red);
+    font-weight: 700;
+  }
+
+  .gd-violation-type {
+    font-size: 0.72rem;
+    color: var(--parchment);
+    line-height: 1.5;
+  }
+
+  /* ── NAVIGATION TO CASE DETAIL ────────────────────────────── */
+  .gd-case-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 48px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+  }
+
+  .gd-case-nav-link {
+    color: var(--cg-mid);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.15s, gap 0.2s;
+  }
+
+  .gd-case-nav-link:hover {
+    color: var(--cg-bright);
+    gap: 10px;
+  }
+
+  .gd-case-nav-case {
+    color: var(--earth-warm);
+    font-size: 0.62rem;
+  }
+
+  @media (max-width: 900px) {
+    .gd-body { grid-template-columns: 1fr; }
+    .gd-main { border-right: none; }
+    .gd-sidebar { border-top: 1px solid var(--border); }
+    .gd-header, .gd-panel { padding-left: 20px; padding-right: 20px; }
+    .gd-case-nav { padding: 12px 20px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Helpers ── #}
+{% if det %}
+  {% set case_title = (det.complainant_initials or det.complainant or '?') + ' v ' + det.respondent %}
+{% else %}
+  {% set case_title = '' %}
+{% endif %}
+
+{# Layer colour map — 5 layers only, canonical keys matching what the
+   API actually returns ("Policy layer", not "organisational layer" —
+   the old "organisational layer" key never matched real data and the
+   CSS rule keyed off it was dead code). Kept in sync with the
+   layerColours JS map in glitch.html. #}
+{% set layer_colours = {
+  'application layer':    '#F5A623',
+  'process layer':        '#E63030',
+  'policy layer':         '#1A6EFF',
+  'human layer':          '#00E5A0',
+  'infrastructure layer': '#1a1a1a',
+} %}
+
+{# Parse layers from system_layer string #}
+{% set layer_parts = [] %}
+{% if entry.system_layer %}
+  {% for part in entry.system_layer.split('+') %}
+    {% if layer_parts.append(part.strip()) %}{% endif %}
+  {% endfor %}
+{% endif %}
+
+{# Parse incident_type themes #}
+{% set themes = [] %}
+{% if entry.incident_type %}
+  {% for t in entry.incident_type.split('/') %}
+    {% if t.strip() and themes.append(t.strip()) %}{% endif %}
+  {% endfor %}
+{% endif %}
+
+{# Overview: first ~280 chars of technical_failure #}
+{% if entry.technical_failure %}
+  {% set overview = entry.technical_failure[:280].rsplit(' ', 1)[0] + '…'
+     if entry.technical_failure|length > 280
+     else entry.technical_failure %}
+{% else %}
+  {% set overview = '' %}
+{% endif %}
+
+{# ── BACK NAV ── #}
+<a href="javascript:history.back()" class="back-nav">← Back to glitch_</a>
+
+{# ── HEADER ── #}
+<div class="gd-header">
+  <p class="gd-eyebrow">glitch_</p>
+  <h1 class="gd-title">{{ entry.case_title }}</h1>
+
+  {# Case reference line #}
+  {% if det %}
+  <div class="gd-case-ref">
+    <span><strong>Case</strong> {{ case_title }}</span>
+    {% if det.case_reference %}
+    <span><strong>Ref</strong> {{ det.case_reference }}</span>
+    {% endif %}
+    {% if det.sector %}
+    <span class="tag tag-earth">{{ det.sector }}</span>
+    {% endif %}
+    {% if det.determination_date %}
+    <span><strong>Determined</strong> {{ det.determination_date[:10] }}</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# Layer tags — bracket style, same component language as glitch.html cards #}
+  {% if layer_parts %}
+  <div class="gd-layers">
+    {% for layer in layer_parts %}
+    {% set col = layer_colours.get(layer.lower(), '#5B6B7A') %}
+    <span class="gd-layer-tag" style="color:{{ col }};">[{{ layer.replace(' layer', '').replace(' Layer', '')|upper }}]</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Theme tags #}
+  {% if themes %}
+  <div class="gd-themes">
+    {% for theme in themes %}
+    <span class="tag tag-blue">{{ theme }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Overview preview #}
+  {% if overview %}
+  <div class="gd-overview">{{ overview }}</div>
+  {% endif %}
+</div>
+
+{# ── LINK BAND TO CASE DETAIL ── #}
+{% if det %}
+<div class="gd-case-nav">
+  <span class="gd-case-nav-case">{{ case_title }}</span>
+  <a href="/case/{{ det.id }}" class="gd-case-nav-link">
+    View full determination →
+  </a>
+</div>
+{% endif %}
+
+{# ── BODY: 2-COLUMN ── #}
+<div class="gd-body">
+
+  {# ── LEFT: PANEL ZONE ── #}
+  <div class="gd-main">
+
+    {# Band strip — data-tone drives the escalation colour/weight in CSS above #}
+    <div class="gd-strip" role="tablist">
+      <button class="gd-btn" id="gdbtn-tech"       data-tone="1" onclick="showBand('tech')"       role="tab" aria-selected="false">01 · Technical Failure</button>
+      <button class="gd-btn" id="gdbtn-regulatory" data-tone="2" onclick="showBand('regulatory')" role="tab" aria-selected="false">02 · Regulatory Signal</button>
+      <button class="gd-btn" id="gdbtn-macro"      data-tone="3" onclick="showBand('macro')"      role="tab" aria-selected="false">03 · Macro Pattern</button>
+    </div>
+
+    {# Panel content #}
+    <div id="gdPanel" class="gd-panel">
+      <div class="gd-idle">
+        <div class="glyph">◎</div>
+        <p>Select a band above to read the glitch_ analysis.</p>
+      </div>
+    </div>
+
+  </div>
+
+  {# ── RIGHT: SIDEBAR ── #}
+  <aside class="gd-sidebar">
+
+    {# Case metadata #}
+    {% if det %}
+    <div class="gd-sidebar-block">
+      <div class="gd-sidebar-heading">Determination</div>
+      <div class="gd-meta-list">
+        {% if det.outcome_type %}
+        <div class="gd-meta-row">
+          <span class="gd-meta-label">Outcome</span>
+          <span class="gd-meta-value">{{ det.outcome_type.replace('_', ' ') }}</span>
+        </div>
+        {% endif %}
+        {% if det.quantum and det.quantum > 0 %}
+        <div class="gd-meta-row">
+          <span class="gd-meta-label">Award</span>
+          <span class="gd-meta-value" style="color:var(--cg-deep);">KES {{ '{:,.0f}'.format(det.quantum) }}</span>
+        </div>
+        {% endif %}
+        {% if det.enforcement_notice %}
+        <div class="gd-meta-row">
+          <span class="gd-meta-label">EN Issued</span>
+          <span class="gd-meta-value" style="color:var(--alert-red);">Yes</span>
+        </div>
+        {% endif %}
+        {% if det.determination_date %}
+        <div class="gd-meta-row">
+          <span class="gd-meta-label">Date</span>
+          <span class="gd-meta-value">{{ det.determination_date[:10] }}</span>
+        </div>
+        {% endif %}
+        {% if det.sector %}
+        <div class="gd-meta-row">
+          <span class="gd-meta-label">Sector</span>
+          <span class="gd-meta-value">{{ det.sector }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Keywords — technical terms from the determination #}
+    {% if terms %}
+    <div class="gd-sidebar-block">
+      <div class="gd-sidebar-heading">Keywords</div>
+      <div class="gd-keywords">
+        {% for t in terms %}
+        <div class="gd-keyword-item">
+          <div class="gd-keyword-term">{{ t.term }}</div>
+          <div class="gd-keyword-def">{{ t.definition }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Violations — section-level breach summary #}
+    {% if violations %}
+    <div class="gd-sidebar-block">
+      <div class="gd-sidebar-heading">Violations</div>
+      {% for v in violations %}
+      <div class="gd-violation-item">
+        <span class="gd-violation-section">s{{ v.section_number or '?' }}{% if v.section_title %} — {{ v.section_title }}{% endif %}</span>
+        {% if v.violation_type %}
+        <span class="gd-violation-type">{{ v.violation_type }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Cross-citations #}
+    {% if citations %}
+    <div class="gd-sidebar-block">
+      <div class="gd-sidebar-heading">Citations</div>
+      <div class="gd-citation-list">
+        {% for c in citations %}
+        <div class="gd-citation-item">
+          <span class="gd-citation-ref">{{ c.cited_reference }}</span>
+          {% if c.cited_type %}
+          <span class="gd-citation-type">{{ c.cited_type.replace('_', ' ') }}{% if c.jurisdiction %} · {{ c.jurisdiction }}{% endif %}</span>
+          {% endif %}
+          {% if c.citation_context %}
+          <span style="font-size:0.62rem; color:var(--earth-warm); line-height:1.5;">{{ c.citation_context }}</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Fallback if no terms and no citations #}
+    {% if not terms and not citations %}
+    <div class="gd-sidebar-block">
+      <div class="gd-sidebar-heading">Keywords</div>
+      <p style="font-size:0.72rem; color:var(--earth-warm); font-style:italic; opacity:0.65;">
+        No technical terms or citations recorded for this entry.
+      </p>
+    </div>
+    {% endif %}
+
+  </aside>
+</div>
+
+{# ── BAND CONTENT PASSED TO JS ── #}
+{# Rendered server-side into JS string literals.
+   Newlines in prose are replaced with paragraph breaks.
+   Each band now also carries an index number and a CSS colour var
+   name, used by showBand() to render the 01/02/03 escalation label. #}
+<script>
+  const BANDS = {
+    tech: {
+      label: 'Technical Failure',
+      index: '01',
+      colour: 'var(--glitch-accent)',
+      content: {{ (entry.technical_failure or '') | replace('\r\n', '\n') | tojson }},
+    },
+    regulatory: {
+      label: 'Regulatory Signal',
+      index: '02',
+      colour: 'var(--alert-amber)',
+      content: {{ (entry.regulatory_signal or '') | replace('\r\n', '\n') | tojson }},
+    },
+    macro: {
+      label: 'Macro Pattern',
+      index: '03',
+      colour: 'var(--glitch-accent)',
+      content: {{ (entry.macro_pattern or '') | replace('\r\n', '\n') | tojson }},
+    },
+  };
+
+  function showBand(name) {
+    // Update button states
+    document.querySelectorAll('.gd-btn').forEach(b => {
+      const isActive = b.id === `gdbtn-${name}`;
+      b.classList.toggle('active', isActive);
+      b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    const panel  = document.getElementById('gdPanel');
+    const band   = BANDS[name];
+
+    // Trigger re-animation
+    panel.style.animation = 'none';
+    panel.offsetHeight;
+    panel.style.animation = '';
+
+    if (!band || !band.content) {
+      panel.innerHTML = `<div class="gd-idle">
+        <div class="glyph">◎</div>
+        <p>No ${band?.label?.toLowerCase() || 'content'} recorded for this entry.</p>
+      </div>`;
+      return;
+    }
+
+    // Convert double newlines to paragraph breaks; single newlines to <br>
+    const paragraphs = band.content
+      .split(/\n{2,}/)
+      .map(p => p.trim())
+      .filter(Boolean)
+      .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+      .join('');
+
+    panel.innerHTML = `
+      <div class="gd-band-label" style="color:${band.colour}; border-bottom-color:${band.colour}30;">
+        <span class="gd-band-index">${band.index}</span><span>${band.label}</span>
+      </div>
+      <div class="gd-prose">${paragraphs}</div>`;
+  }
+</script>
+
+{% endblock %}

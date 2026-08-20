@@ -1,0 +1,916 @@
+{% extends "base.html" %}
+
+{% block title %}Sections & Regulations{% endblock %}
+{% block meta_description %}Browse ODPC determinations by sections and regulations of the Data Protection Act, 2019.{% endblock %}
+
+{% block extra_css %}
+<style>
+
+  /* ── PAGE LAYOUT ──────────────────────────────────────────── */
+  .sec-wrapper {
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    min-height: calc(100vh - 56px - 56px);
+    gap: 0;
+  }
+
+  /* ── LEFT: LEGISLATION TOGGLE + SECTION NAV ───────────────── */
+  .sec-leftnav {
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header description block */
+  .sec-leftnav-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sec-leftnav-header p {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--parchment);
+    line-height: 1.7;
+    opacity: 0.75;
+  }
+
+  /* Toggle buttons: DPA / General Regs / Enforcement Regs */
+  .sec-toggle-strip {
+    padding: 12px 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sec-toggle-btn {
+    width: 100%;
+    text-align: left;
+    padding: 9px 12px;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--parchment);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .sec-toggle-btn:hover {
+    color: var(--cg-bright);
+    border-color: var(--border-cg);
+    background: rgba(0,229,160,0.03);
+  }
+
+  .sec-toggle-btn.active {
+    color: var(--cg-bright);
+    border-color: var(--cg-mid);
+    background: rgba(0,229,160,0.05);
+  }
+
+  .sec-toggle-count {
+    font-family: var(--font-display);
+    font-size: 0.58rem;
+    color: var(--earth-warm);
+    background: var(--bg-panel);
+    padding: 1px 6px;
+    border-radius: 16px;
+  }
+
+  /* Section number nav — the scrollable numbered pill strip */
+  .sec-num-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px;
+    display: none; /* shown by JS when a toggle is active */
+  }
+
+  .sec-num-nav.visible { display: block; }
+
+  /* Category grouping within the nav */
+  .sec-nav-category {
+    font-family: var(--font-display);
+    font-size: 0.59rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--pitch-black); /*(--earth-warm);*/
+    padding: 10px 4px 5px;
+    border-bottom: 1px solid rgba(196,154,108,0.08);
+    margin-bottom: 4px;
+  }
+
+  /* Individual section number pill */
+  .sec-pill {
+    display: inline-flex;
+    align-items: center;
+    margin: 2px;
+    padding: 4px 9px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--parchment);
+    border: 2px solid var(--alert-amber);/*(--border);*/
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+    position: relative;
+  }
+
+  .sec-pill:hover {
+    color: var(--cg-bright);
+    border-color: var(--cg-mid);
+    background: rgba(0,229,160,0.04);
+  }
+
+  .sec-pill.active {
+    color: var(--bg);
+    background: var(--cg-mid);
+    border-color: var(--cg-mid);
+  }
+
+  /* Small count badge on pill */
+  .sec-pill-count {
+    margin-left: 5px;
+    font-size: 0.55rem;
+    color: var(--earth-warm);
+    background: var(--alert-amber);/*(--bg-card);*/
+    padding: 0 4px;
+    border-radius: 6px;
+    line-height: 1.6;
+  }
+
+  .sec-pill.active .sec-pill-count {
+    background: rgba(0,0,0,0.2);
+    color: var(--bg);
+  }
+
+  /* Subsection pills — indented, slightly smaller */
+  .sec-pill.subsection {
+    margin-left: 12px;
+    font-size: 0.6rem;
+    border-style: dashed;
+    border-radius: 4px;
+    color: var(--earth-light);
+  }
+
+  .sec-pill.subsection:hover,
+  .sec-pill.subsection.active {
+    border-style: solid;
+  }
+
+  /* ── CENTRE: MAIN CONTENT ─────────────────────────────────── */
+  .sec-main {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    min-width: 0;
+  }
+
+  /* Idle state — nothing selected yet */
+  .sec-idle {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    min-height: 400px;
+    opacity: 0.45;
+    text-align: center;
+    padding: 32px;
+  }
+
+  .sec-idle .glyph { font-size: 2.2rem; }
+
+  .sec-idle p {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--earth-warm);
+    max-width: 280px;
+    line-height: 1.7;
+  }
+
+  /* Section header — shown when a section is selected */
+  .sec-detail-header {
+    padding: 24px 32px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    display: none;
+  }
+
+  .sec-detail-header.visible { display: block; }
+
+  .sec-section-num {
+    font-family: var(--font-display);
+    font-size: 1.11rem;
+    color: var(--accent-deep);
+    letter-spacing: 0.14em;
+    margin-bottom: 5px;
+  }
+
+  .sec-section-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--cream);
+    margin-bottom: 8px;
+  }
+
+  .sec-section-explainer {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    color: var(--parchment);
+    line-height: 1.75;
+    opacity: 0.8;
+    max-width: 580px;
+  }
+
+  /* Case list within the selected section */
+  .sec-cases-area {
+    flex: 1;
+    padding: 20px 32px 32px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .sec-cases-area.visible { display: block; }
+
+  /* Loading shimmer */
+  .sec-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 32px 0;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--earth-warm);
+  }
+
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--cg-bright);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Individual case row */
+  .sec-case-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(196,154,108,0.07);
+    animation: rowIn 0.25s ease both;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 2px;
+    margin: 0 -8px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .sec-case-row:last-child { border-bottom: none; }
+
+  .sec-case-row:hover { background: rgba(0,229,160,0.03); }
+
+  .sec-case-num {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--earth-warm);
+    flex-shrink: 0;
+    width: 22px;
+    margin-top: 2px;
+  }
+
+  .sec-case-body { flex: 1; min-width: 0; }
+
+  .sec-case-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-deep);
+    transition: color 0.15s;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .sec-case-row:hover .sec-case-title { color: var(--cream); }
+
+  .sec-case-meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--parchment);
+    opacity: 0.75;
+  }
+
+  .sec-case-meta strong { color: var(--earth-light); }
+
+  .sec-case-violation {
+    font-size: 0.75rem;
+    color: var(--parchment);
+    margin-top: 4px;
+    line-height: 1.5;
+    opacity: 0.8;
+  }
+
+  /* Severity dots */
+  .sec-severity {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+
+  .sec-sev-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .sec-sev-dot.on { background: var(--alert-red); }
+
+  /* ── PAGINATION ─────────────────────────────────────────────
+     This is the pagination that works correctly.
+     currentPage and currentTotalPages are module-level JS state.
+     changeSectionPage() calls loadSection() — no URL change,
+     no page reload, pure in-place fetch.
+  ── */
+  .sec-pagination {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 20px 32px 8px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
+
+  .sec-pagination.visible { display: flex; }
+
+  .sec-page-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--parchment);
+    cursor: pointer;
+    transition: all 0.18s;
+    background: var(--bg-card);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+  }
+
+  .sec-page-btn:hover:not(:disabled) {
+    background: var(--cg-deep);
+    border-color: var(--cg-mid);
+    color: var(--cream);
+  }
+
+  .sec-page-btn.active {
+    background: var(--cg-deep);
+    border-color: var(--cg-mid);
+    color: var(--cream);
+    cursor: default;
+  }
+
+  .sec-page-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* ── RIGHT: STATS SIDEBAR ─────────────────────────────────── */
+  .sec-sidebar {
+    background: var(--bg-panel);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sec-sidebar-block {
+    padding: 20px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sec-sidebar-heading {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--earth-light);
+    margin-bottom: 14px;
+  }
+
+  /* Idle stats state */
+  .sec-stats-idle {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--earth-warm);
+    opacity: 0.55;
+    font-style: italic;
+    line-height: 1.6;
+  }
+
+  /* Individual stat line */
+  .sec-stat-item {
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(196,154,108,0.06);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--parchment);
+    line-height: 1.55;
+    animation: rowIn 0.2s ease both;
+  }
+
+  .sec-stat-item:last-child { border-bottom: none; }
+
+  .sec-stat-num {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--cg-bright);
+    line-height: 1;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .sec-stat-label {
+    font-size: 0.62rem;
+    color: var(--earth-warm);
+    letter-spacing: 0.06em;
+  }
+
+  .sec-stat-sentence {
+    font-size: 0.7rem;
+    color: var(--parchment);
+    line-height: 1.6;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(196,154,108,0.06);
+    animation: rowIn 0.2s ease both;
+  }
+
+  .sec-stat-sentence:last-child { border-bottom: none; }
+
+  .sec-stat-sentence strong { color: var(--cream); }
+
+  /* Quantum stat — emphasised */
+  .sec-quantum-stat {
+    color: var(--cg-deep);
+    font-weight: 700;
+  }
+
+  @media (max-width: 1100px) {
+    .sec-wrapper { grid-template-columns: 220px 1fr 240px; }
+  }
+
+  @media (max-width: 860px) {
+    .sec-wrapper { grid-template-columns: 1fr; }
+    .sec-leftnav { border-right: none; border-bottom: 1px solid var(--border); }
+    .sec-main { border-right: none; border-bottom: 1px solid var(--border); }
+    .sec-sidebar { border-top: none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Page header ── #}
+<div class="search-header" style="padding: 28px 32px 20px; border-bottom: 1px solid var(--border);">
+  <p class="page-eyebrow">Legislation</p>
+  <h1 class="page-title">Sections &amp; Regulations</h1>
+  <p style="font-family:var(--font-mono); font-size:0.72rem; color:var(--parchment); margin-top:6px; opacity:0.75; max-width:600px; line-height:1.7;">
+    Search for ODPC determinations by sections and regulations of the DPA.
+    Observe violations as aggregated by section, general regulation, and enforcement regulation.
+  </p>
+</div>
+
+<div class="sec-wrapper">
+
+  {# ══ LEFT NAV ══════════════════════════════════════════════ #}
+  <div class="sec-leftnav">
+
+    {# Toggle buttons #}
+    <div class="sec-toggle-strip">
+      <button class="sec-toggle-btn" id="toggle-dpa" onclick="setRegSet('dpa')">
+        Sections of the DPA
+        <span class="sec-toggle-count" id="count-dpa">—</span>
+      </button>
+      <button class="sec-toggle-btn" id="toggle-general_regs" onclick="setRegSet('general_regs')">
+        Regulations (General)
+        <span class="sec-toggle-count" id="count-general_regs">—</span>
+      </button>
+      <button class="sec-toggle-btn" id="toggle-enforcement_regs" onclick="setRegSet('enforcement_regs')">
+        Regulations (Enforcement)
+        <span class="sec-toggle-count" id="count-enforcement_regs">—</span>
+      </button>
+    </div>
+
+    {# Section number nav — rendered by JS #}
+    <div class="sec-num-nav" id="secNumNav"></div>
+
+  </div>
+
+  {# ══ CENTRE MAIN ═══════════════════════════════════════════ #}
+  <div class="sec-main">
+
+    {# Idle state #}
+    <div class="sec-idle" id="secIdle">
+      <div class="glyph">§</div>
+      <p>Select a legislation type and then a section or regulation to view its determinations.</p>
+    </div>
+
+    {# Section detail header — shown when a section is loaded #}
+    <div class="sec-detail-header" id="secDetailHeader">
+      <div class="sec-section-num" id="secDetailNum"></div>
+      <div class="sec-section-title" id="secDetailTitle"></div>
+      <div class="sec-section-explainer" id="secDetailExplainer"></div>
+    </div>
+
+    {# Cases area #}
+    <div class="sec-cases-area" id="secCasesArea"></div>
+
+    {# Pagination — controlled entirely by JS state, no URL changes #}
+    <div class="sec-pagination" id="secPagination">
+      <button class="sec-page-btn" id="pagePrev" onclick="changeSectionPage(currentSectionPage - 1)">‹</button>
+      <span id="pageInfo" style="font-family:var(--font-mono); font-size:0.65rem; color:var(--earth-warm); padding:0 8px;"></span>
+      <button class="sec-page-btn" id="pageNext" onclick="changeSectionPage(currentSectionPage + 1)">›</button>
+    </div>
+
+  </div>
+
+  {# ══ RIGHT SIDEBAR ═════════════════════════════════════════ #}
+  <aside class="sec-sidebar">
+    <div class="sec-sidebar-block">
+      <div class="sec-sidebar-heading">Section Statistics</div>
+      <div id="secStats">
+        <p class="sec-stats-idle">Select a section to view its enforcement statistics.</p>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  /* ── MODULE STATE ─────────────────────────────────────────────
+     All pagination is managed here in JS state.
+     changeSectionPage() calls loadSection() — there is no URL
+     manipulation, no window.location change, no page reload.
+     The browser stays on /sections throughout.
+  ── */
+
+  let allSections      = {};   // { category: [section, ...] } from API
+  let currentRegSet    = null; // 'dpa' | 'general_regs' | 'enforcement_regs'
+  let currentSection   = null; // section_number string
+  let currentSectionPage     = 1;
+  let currentSectionTotalPages = 1;
+
+  /* ── BOOT: load all sections on page arrival ──────────────── */
+  fetch('/api/sections/index')
+    .then(r => r.json())
+    .then(data => {
+      allSections = data;
+      hydrateCounts();
+    })
+    .catch(() => {});
+
+  /* ── Count badges on toggle buttons ──────────────────────── */
+  function hydrateCounts() {
+    const counts = { dpa: 0, general_regs: 0, enforcement_regs: 0 };
+    for (const sections of Object.values(allSections)) {
+      for (const s of sections) {
+        if (counts[s.reg_set] !== undefined) counts[s.reg_set]++;
+      }
+    }
+    for (const [key, count] of Object.entries(counts)) {
+      const el = document.getElementById(`count-${key}`);
+      if (el) el.textContent = count || '—';
+    }
+  }
+
+  /* ── TOGGLE: switch active regulation set ─────────────────── */
+  function setRegSet(regSet) {
+    currentRegSet  = regSet;
+    currentSection = null;
+    currentSectionPage = 1;
+
+    // Update toggle button states
+    ['dpa', 'general_regs', 'enforcement_regs'].forEach(rs => {
+      document.getElementById(`toggle-${rs}`)
+        .classList.toggle('active', rs === regSet);
+    });
+
+    renderSectionNav(regSet);
+    resetMainPanel();
+  }
+
+  /* ── Render the numbered pill nav for the selected reg set ── */
+  function renderSectionNav(regSet) {
+    const nav = document.getElementById('secNumNav');
+    nav.innerHTML = '';
+    nav.classList.add('visible');
+
+    // Filter sections belonging to this reg_set
+    const filtered = {};
+    for (const [cat, sections] of Object.entries(allSections)) {
+      const matching = sections.filter(s => s.reg_set === regSet);
+      if (matching.length) filtered[cat] = matching;
+    }
+
+    if (!Object.keys(filtered).length) {
+      nav.innerHTML = '<p style="font-family:var(--font-mono);font-size:0.65rem;color:var(--earth-warm);padding:12px 4px;opacity:0.6;">No sections found for this category.</p>';
+      return;
+    }
+
+    for (const [cat, sections] of Object.entries(filtered)) {
+      const catEl = document.createElement('div');
+      catEl.className = 'sec-nav-category';
+      catEl.textContent = cat;
+      nav.appendChild(catEl);
+
+      // Group: parent sections first, then their subsections indented
+      // Parent = section_number with no parentheses or single digit e.g. "26", "37"
+      // Subsection = has "(", e.g. "26(a)", "30(1)(b)"
+      const parents = sections.filter(s => !s.section_number.includes('('));
+      const subs    = sections.filter(s =>  s.section_number.includes('('));
+
+      // Render parents, then for each parent render its subsections below it
+      const rendered = new Set();
+      for (const s of parents) {
+        nav.appendChild(makePill(s, false));
+        rendered.add(s.section_number);
+        // Find subsections of this parent
+        const parentNum = s.section_number;
+        const children  = subs.filter(c => c.section_number.startsWith(parentNum + '('));
+        for (const c of children) {
+          nav.appendChild(makePill(c, true));
+          rendered.add(c.section_number);
+        }
+      }
+      // Render any subs that didn't match a parent (orphan subsections)
+      for (const s of subs) {
+        if (!rendered.has(s.section_number)) {
+          nav.appendChild(makePill(s, true));
+        }
+      }
+    }
+  }
+
+  function makePill(section, isSub) {
+    const btn = document.createElement('button');
+    btn.className = 'sec-pill' + (isSub ? ' subsection' : '');
+    btn.dataset.sectionNumber = section.section_number;
+    btn.setAttribute('aria-label', `Section ${section.section_number}: ${section.title || ''}`);
+
+    const label = document.createElement('span');
+    label.textContent = section.section_number;
+    btn.appendChild(label);
+
+    if (section.violation_count > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'sec-pill-count';
+      badge.textContent = section.violation_count;
+      btn.appendChild(badge);
+    }
+
+    btn.addEventListener('click', () => selectSection(section.section_number));
+    return btn;
+  }
+
+  /* ── SELECT SECTION: update pill state + load data ─────────── */
+  function selectSection(sectionNumber) {
+    currentSection     = sectionNumber;
+    currentSectionPage = 1;   // always reset to page 1 on new section
+
+    // Update pill active state
+    document.querySelectorAll('.sec-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.sectionNumber === sectionNumber);
+    });
+
+    loadSection(sectionNumber, 1);
+  }
+
+  /* ── LOAD SECTION: fetch + render ────────────────────────────
+     This is the single function that handles both initial load
+     AND pagination. It takes a page number as argument.
+     It NEVER touches window.location or the URL.
+  ── */
+  function loadSection(sectionNumber, page) {
+    currentSectionPage = page;
+
+    // Show loading state in main panel
+    showMainPanel();
+    document.getElementById('secCasesArea').innerHTML =
+      '<div class="sec-loading"><div class="spinner"></div><span>Loading determinations…</span></div>';
+    document.getElementById('secStats').innerHTML =
+      '<div class="sec-loading"><div class="spinner"></div></div>';
+    document.getElementById('secPagination').classList.remove('visible');
+
+    fetch(`/api/sections/${encodeURIComponent(sectionNumber)}/cases?page=${page}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          document.getElementById('secCasesArea').innerHTML =
+            `<p style="font-family:var(--font-mono);font-size:0.72rem;color:var(--alert-red);padding:20px 0;">${data.error}</p>`;
+          return;
+        }
+
+        currentSectionTotalPages = data.total_pages || 1;
+
+        renderDetailHeader(data.section);
+        renderCases(data.results);
+        renderStats(data.section, data.stats, data.total);
+        renderPagination(page, data.total_pages, data.total);
+      })
+      .catch(() => {
+        document.getElementById('secCasesArea').innerHTML =
+          '<p style="font-family:var(--font-mono);font-size:0.72rem;color:var(--alert-red);padding:20px 0;">Failed to load. Please try again.</p>';
+      });
+  }
+
+  /* ── PAGINATION CHANGE ────────────────────────────────────────
+     Called by the ‹ and › buttons.
+     Does NOT change the URL. Calls loadSection() directly.
+  ── */
+  function changeSectionPage(newPage) {
+    if (newPage < 1 || newPage > currentSectionTotalPages) return;
+    if (!currentSection) return;
+
+    // Scroll back to top of cases area
+    document.getElementById('secCasesArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    loadSection(currentSection, newPage);
+  }
+
+  /* ── RENDER: detail header ───────────────────────────────── */
+  function renderDetailHeader(section) {
+    document.getElementById('secDetailNum').textContent   = section.section_number || '';
+    document.getElementById('secDetailTitle').textContent = section.title || '';
+    document.getElementById('secDetailExplainer').textContent = section.description || '';
+    document.getElementById('secDetailHeader').classList.add('visible');
+  }
+
+  /* ── RENDER: case rows ────────────────────────────────────── */
+  function renderCases(results) {
+    const area = document.getElementById('secCasesArea');
+
+    if (!results || results.length === 0) {
+      area.innerHTML = `
+        <div class="sec-idle" style="min-height:200px;">
+          <div class="glyph">◎</div>
+          <p>No recorded determinations for this section yet.</p>
+        </div>`;
+      return;
+    }
+
+    // Calculate page offset for display numbering
+    const offset = (currentSectionPage - 1) * 10;
+
+    area.innerHTML = results.map((c, i) => {
+      const severityDots = Array.from({length: 5}, (_, idx) =>
+        `<div class="sec-sev-dot ${idx < Math.round(c.severity || 0) ? 'on' : ''}"></div>`
+      ).join('');
+
+      const quantum = c.quantum && c.quantum > 0
+        ? `<span><strong>Award</strong> KES ${Number(c.quantum).toLocaleString()}</span>`
+        : '';
+
+      const outcome = c.outcome_type
+        ? `<span><strong>Outcome</strong> ${c.outcome_type.replace(/_/g,' ')}</span>`
+        : '';
+
+      return `
+      <div class="sec-case-row" onclick="window.location='/case/${c.id}'"
+           style="animation-delay:${i * 40}ms">
+        <span class="sec-case-num">${offset + i + 1}.</span>
+        <div class="sec-case-body">
+          <span class="sec-case-title">${c.title}</span>
+          <div class="sec-case-meta">
+            ${c.sector ? `<span><strong>Sector</strong> ${c.sector}</span>` : ''}
+            ${c.date   ? `<span><strong>Date</strong> ${c.date}</span>` : ''}
+            ${quantum}
+            ${outcome}
+          </div>
+          ${c.violation_type ? `<div class="sec-case-violation">${c.violation_type}</div>` : ''}
+        </div>
+        <div class="sec-severity">${severityDots}</div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ── RENDER: statistics sidebar ──────────────────────────── */
+  function renderStats(section, stats, total) {
+    const container = document.getElementById('secStats');
+    if (!stats) {
+      container.innerHTML = '<p class="sec-stats-idle">No statistics available.</p>';
+      return;
+    }
+
+    const sectionRef = section.section_number;
+    const title      = section.title || sectionRef;
+    const quantum    = stats.total_quantum
+      ? `KES ${Number(stats.total_quantum).toLocaleString()}`
+      : '—';
+    const avgQtm     = stats.avg_quantum
+      ? `KES ${Number(stats.avg_quantum).toLocaleString()}`
+      : '—';     
+    const sector     = stats.most_common_sector || '—';
+    const avgSev     = stats.avg_severity ? stats.avg_severity.toFixed(1) : '—';
+
+    container.innerHTML = `
+      <div class="sec-stat-item">
+        <span class="sec-stat-num">${total}</span>
+        <span class="sec-stat-label">Total violations recorded</span>
+      </div>
+      <div class="sec-stat-item">
+        <span class="sec-stat-num">${stats.sectors_affected || 0}</span>
+        <span class="sec-stat-label">Sectors affected</span>
+      </div>
+      <div class="sec-stat-sentence">
+        Violated in
+        <strong>${total}</strong> recorded determination${total !== 1 ? 's' : ''}.
+      </div>
+      ${stats.most_common_sector ? `
+      <div class="sec-stat-sentence">
+        Most frequently violated in the
+        <strong>${sector}</strong> sector.
+      </div>` : ''}
+      ${stats.total_quantum > 0 ? `
+      <div class="sec-stat-sentence">
+        Cases where a Section <strong>${sectionRef}</strong> violation was found led to 
+        <span class="sec-quantum-stat">${quantum}</span> in total compensation awarded.
+      </div>` : ''}
+      ${stats.avg_quantum > 0 ? `
+      <div class="sec-stat-sentence">
+        Cases where a Section <strong>${sectionRef}</strong> violation was found led to
+        <span class="sec-quantum-stat">${avgQtm}</span> in average compensation awarded.
+      </div>` : ''}
+      <div class="sec-stat-sentence">
+        Average severity across violations:
+        <strong>${avgSev} / 5</strong>.
+      </div>`;
+  }
+
+  /* ── RENDER: pagination controls ─────────────────────────── */
+  function renderPagination(page, totalPages, total) {
+    const pag      = document.getElementById('secPagination');
+    const prevBtn  = document.getElementById('pagePrev');
+    const nextBtn  = document.getElementById('pageNext');
+    const infoEl   = document.getElementById('pageInfo');
+
+    if (totalPages <= 1) {
+      pag.classList.remove('visible');
+      return;
+    }
+
+    pag.classList.add('visible');
+    prevBtn.disabled = (page <= 1);
+    nextBtn.disabled = (page >= totalPages);
+    infoEl.textContent = `Page ${page} of ${totalPages}`;
+  }
+
+  /* ── UI HELPERS ──────────────────────────────────────────── */
+  function showMainPanel() {
+    document.getElementById('secIdle').style.display        = 'none';
+    document.getElementById('secDetailHeader').classList.add('visible');
+    document.getElementById('secCasesArea').classList.add('visible');
+  }
+
+  function resetMainPanel() {
+    document.getElementById('secIdle').style.display        = '';
+    document.getElementById('secDetailHeader').classList.remove('visible');
+    document.getElementById('secCasesArea').classList.remove('visible');
+    document.getElementById('secPagination').classList.remove('visible');
+    document.getElementById('secStats').innerHTML =
+      '<p class="sec-stats-idle">Select a section to view its enforcement statistics.</p>';
+    document.querySelectorAll('.sec-pill').forEach(p => p.classList.remove('active'));
+  }
+</script>
+{% endblock %}

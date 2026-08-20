@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+
+{% block title %}Data Protection Case Research & Regulatory Intelligence{% endblock %}
+{% block meta_description %}/dapa — curated intelligence over ODPC determinations. Search Kenya's data protection case law by sector, legal concept, or technical term.{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── TICKER BAND ──────────────────────────────────── */
+  .ticker-band {
+    background: rgba(200, 235, 255, 0.14); /*var(--cg-mid); (--cg-muted);*/
+    border-bottom: 1px solid var(--bg);
+    padding: 7px 0;
+    overflow: hidden;
+  }
+  .ticker-inner {
+    display: flex;
+    gap: 48px;
+    white-space: nowrap;
+    animation: ticker 36s linear infinite;
+    width: max-content;
+  }
+
+  @keyframes ticker {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .ticker-item {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cg-deep); /*(--cg-bright);*/
+    opacity: 0.8;
+    flex-shrink: 0;
+  }
+  .ticker-sep { color: var(--earth-warm); opacity: 0.5; }
+
+  /* ── HERO ─────────────────────────────────────────── */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: calc(100vh - 56px - 40px - 56px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-left {
+    padding: 72px 48px 72px 56px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background:
+      radial-gradient(ellipse 60% 50% at -10% 50%, rgba(0,229,160,0.05) 0%, transparent 70%),
+      var(--bg);
+  }
+
+  .hero-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.26em;
+    text-transform: lowercase;
+    color: var(--cg-mid);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 24px; height: 1px;
+    background: var(--cg-mid);
+  }
+
+  .masthead-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 4vw, 3.8rem);
+    font-weight: 600;
+    line-height: 1.07;
+    letter-spacing: -0.02em;
+    color: var(--cream);
+  }
+  .masthead-title .line-accent {
+    color: var(--cg-bright);
+    display: block;
+  }
+  .masthead-title .line-dim {
+    color: var(--alert-amber);
+    font-weight: 400;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.72em;
+    letter-spacing: 0;
+    display: block;
+    margin-top: 4px;
+  }
+
+	.hero-descriptor {
+	  font-family: var(--font-mono);
+	  font-size: 1rem;
+	  line-height: 1.5;
+	  color: var(--pitch-black);
+	  max-width: 500px;
+	  margin-bottom: 20px;
+	}
+
+	.hero-cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+
+	.hero-cta {
+	  display: flex;
+	  flex-direction: column;
+	  gap: 2px;
+	  padding: 10px 18px;
+	  border-radius: 3px;
+	  border: 3px solid var(--border);
+	  text-decoration: none;
+	  transition: border-color 0.2s, transform 0.2s;
+	}
+	.hero-cta:hover { transform: translateY(-1px); }
+
+	.hero-cta-label {
+	  font-family: var(--font-mono);
+	  font-size: 0.82rem;
+	  font-weight: 700;
+	  letter-spacing: 0.08em;
+	  text-transform: uppercase;
+	}
+	.hero-cta-sub { font-family: var(--font-display); font-size: 0.72rem; color: var(--pitch-black); opacity: 0.85; }
+
+	.hero-cta-wall { border-color: rgba(0,229,160,0.3); }
+	.hero-cta-wall .hero-cta-label { color: var(--cg-bright); }
+	.hero-cta-wall:hover { border-color: var(--cg-bright); }
+
+	.hero-cta-glitch { border-color: var(--glitch-accent-mid, rgba(91,107,122,0.35)); }
+	.hero-cta-glitch .hero-cta-label { color: var(--glitch-accent, #5B6B7A); }
+	.hero-cta-glitch:hover { border-color: var(--glitch-accent, #5B6B7A); }
+
+  .hero-stat-row {
+    display: flex;
+    gap: 28px;
+    margin-top: 48px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .hero-stat { display: flex; flex-direction: column; gap: 4px; }
+  .hero-stat-num {
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-display);
+    font-size: 2.0rem;
+    font-weight: 600;
+    color: var(--cg-bright);
+    line-height: 1;
+  }
+  .hero-stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--earth-warm);
+  }
+  .drh-nav-link {
+    color: var(--alert-red);
+   }
+  .glitch-nav-link{
+    color: var(--alert-red);
+   }
+
+  /* ── SECTION GRID ─────────────────────────────────── */
+  .hero-right {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .nav-section {
+    padding: 36px 32px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.25s;
+    text-decoration: none;
+    color: inherit;
+  }
+  .nav-section:nth-child(2),
+  .nav-section:nth-child(4) { border-right: none; }
+  .nav-section:nth-child(3),
+  .nav-section:nth-child(4) { border-bottom: none; }
+
+  .nav-section::before {
+    content: attr(data-num);
+    position: absolute;
+    top: 14px; right: 18px;
+    font-family: var(--font-display);
+    font-size: 3.8rem;
+    font-weight: 400;
+    color: var(--accent-cyan); /*(--alert-amber); rgba(196,154,108,0.05);*/
+    line-height: 1;
+    pointer-events: none;
+    transition: color 0.25s;
+    user-select: none;
+  }
+  .nav-section:hover { background: rgba(0,229,160,0.025); }
+  .nav-section:hover::before { color: rgba(0,229,160,0.07); }
+
+  .nav-section.glitch-section { background: rgba(245,166,35,0.015); }
+  .nav-section.glitch-section:hover { background: rgba(245,166,35,0.04); }
+  .nav-section.glitch-section::before { color: rgba(245,166,35,0.05); }
+
+  .section-number {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    color: var(--alert-amber);
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-deep);
+    transition: color 0.2s;
+    line-height: 1.25;
+  }
+  .nav-section:hover .section-title { color: var(--cg-bright); }
+  .nav-section.glitch-section .section-title { color: var(--alert-amber); }
+  .nav-section.glitch-section:hover .section-title { color: var(--cream); }
+
+  .section-desc {
+    font-size: 0.78rem;
+    color: var(--parchment);
+    line-height: 1.65;
+    opacity: 0.75;
+    flex: 1;
+  }
+  .section-cta {
+    margin-top: auto;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cg-mid);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: gap 0.2s, color 0.2s;
+  }
+  .nav-section:hover .section-cta { gap: 10px; }
+  .section-cta::after { content: '→'; }
+  .nav-section.glitch-section .section-cta { color: var(--alert-amber); }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-left { border-right: none; border-bottom: 1px solid var(--border); padding: 48px 28px; }
+    .hero-right { grid-template-columns: 1fr; }
+    .nav-section:nth-child(2) { border-right: none; }
+    .nav-section:nth-child(3) { border-bottom: 1px solid var(--border); }
+  }
+</style>
+{% endblock %}
+
+{% block sub_header %}
+<div class="ticker-band" aria-hidden="true">
+  <div class="ticker-inner">
+    {% set items = ['/dapa is a curated intelligence layer which makes ODPC determinations actionable
+         and understandable for citizens and data protection professionals.',
+      '/dapa Provides Regulatory Intelligence, Data Breach Analysis & Sector Pattern Recognition'] %}
+    {% for item in items %}
+      <span class="ticker-item">{{ item }}</span><span class="ticker-sep">&nbsp;*&nbsp;</span>
+    {% endfor %}
+    {% for item in items %}
+      <span class="ticker-item">{{ item }}</span><span class="ticker-sep">&nbsp;*&nbsp;</span>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+
+  <!-- LEFT: MASTHEAD -->
+  <div class="hero-left">
+    <div>
+      <p class="hero-eyebrow">/dapa</p>
+      <h1 class="masthead-title">
+        Data Protection
+        <span class="line-accent">Case Research</span>
+        <span class="line-dim">&amp; Regulatory Intelligence</span>
+      </h1>
+	<p class="hero-descriptor">
+	  
+	</p>
+	<div class="hero-cta-row">
+	  <a href="/wall" class="hero-cta hero-cta-wall">
+	    <span class="hero-cta-label">Data Rights Hub</span>
+	    <span class="hero-cta-sub">Access your data subject rights</span>
+	  </a>
+	  <a href="/glitch" class="hero-cta hero-cta-glitch">
+	    <span class="hero-cta-label">the glitch_</span>
+	    <span class="hero-cta-sub">See how tech and law intersect in a breach</span>
+	  </a>
+	</div>
+    </div>
+    <div class="hero-stat-row">
+      <div class="hero-stat">
+        <span class="hero-stat-num">{{ corpus_stats.total_cases if corpus_stats else '70+' }}</span>
+        <span class="hero-stat-label">Determinations</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num">{{ corpus_stats.sectors if corpus_stats else '12' }}</span>
+        <span class="hero-stat-label">Sectors</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num">{{ corpus_stats.en_count if corpus_stats else '1' }}</span>
+        <span class="hero-stat-label">Enforcement Notices</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num">{{ corpus_stats.total_award if corpus_stats else '1M' }}</span>
+        <span class="hero-stat-label">Total Compensation in KES</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: SECTION GRID -->
+  <div class="hero-right">
+
+    <a href="/explore" class="nav-section" data-num="">
+      <span class="section-number">Explore</span>
+      <h2 class="section-title">Explore All Determinations</h2>
+      <p class="section-desc">
+        Search the full corpus in natural language. Jot ideas, legal concepts,
+        party names or complaint numbers — see what surfaces. Open inquiry
+        across the entire corpus with no fixed categories.
+      </p>
+      <span class="section-cta">Start exploring</span>
+    </a>
+
+    <a href="/sector-search" class="nav-section" data-num="">
+      <span class="section-number">Sector Search</span>
+      <h2 class="section-title">Search by Sector or Industry</h2>
+      <p class="section-desc">
+        Segment the corpus by sector — Digital Lending, Banking, Telco,
+        Healthcare, Employment and more. Track how the ODPC rules across
+        industries and map enforcement intensity.
+      </p>
+      <span class="section-cta">Browse by Sector</span>
+    </a>
+
+    <a href="/sections" class="nav-section" data-num="">
+      <span class="section-number">Sections</span>
+      <h2 class="section-title">Search by Sections of the DPA</h2>
+      <p class="section-desc">
+	Search the corpus by sections of the Data Protection Act.
+	Track violations according to the relevant section of the Act, 
+	and observe violations statistics per section.
+      </p>
+      <span class="section-cta">browse by sections</span>
+    </a>
+
+
+    <a href="/patterns" class="nav-section" data-num="">
+      <span class="section-number">Observe Patterns</span>
+      <h2 class="section-title">Trends &amp; Patterns</h2>
+      <p class="section-desc">
+        Visual explorations of ODPC ruling patterns — compensation quanta,
+        repeat violation typologies, sectoral enforcement intensity, and
+        the cross-case citation graph.
+      </p>
+      <span class="section-cta">view visualisations</span>
+    </a>
+
+
+  </div>
+</section>
+{% endblock %}
