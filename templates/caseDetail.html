@@ -18,7 +18,7 @@
     font-family: var(--font-display);
     font-size: clamp(1.4rem, 3vw, 2rem);
     font-weight: 800;
-    color: var(--cream);
+    color: var(--pitch-black);
     letter-spacing: -0.01em;
     line-height: 1.15;
     margin-bottom: 16px;
@@ -74,7 +74,7 @@
   .case-citations strong { color: var(--earth-light); }
 
   .citation-link {
-    color: var(--cg-mid);
+    color: var(--cg-deep);
     border-bottom: 1px solid rgba(0,196,122,0.3);
     transition: color 0.15s;
   }
@@ -82,14 +82,14 @@
 
   /* Theme line — extracted from violations */
   .case-theme {
-    font-family: var(--font-serif);
-    font-style: italic;
+    font-family: var(--font-mono);
     font-size: 0.98rem;
+    font-style: italic;
     color: var(--pitch-black);
     line-height: 1.55;
     padding-left: 14px;
     border-left: 2px solid var(--cg-deep);
-    max-width: 770px;
+    max-width: 880px;
     margin-bottom: 14px;
   }
 
@@ -358,7 +358,7 @@
     font-family: var(--font-mono);
     font-size: 0.72rem;
     font-weight: 700;
-    color: var(--alert-amber);
+    color: var(--cg-deep);
     letter-spacing: 0.04em;
     margin-bottom: 5px;
   }
@@ -398,7 +398,7 @@
     font-family: var(--font-mono);
     font-size: 0.65rem;
     font-weight: 700;
-    color: var(--alert-amber);
+    color: var(--cg-deep);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     margin-bottom: 8px;
@@ -431,7 +431,7 @@
     font-family: var(--font-mono);
     font-size: 0.7rem;
     font-weight: 700;
-    color: var(--alert-amber);*/
+    color: var(--alert-red);*/
   }
 
   .violation-section-title {
@@ -475,7 +475,7 @@
   }
 
   .glitch-link-banner a {
-    color: var(--alert-amber);
+    color: var(--cg-deep);
     transition: color 0.15s;
     font-weight: 700;
   }
@@ -507,22 +507,24 @@
 {% if case.complainant_2 %}
   {% set title = (case.complainant_initials or case.complainant) + ' and ' + (case.complainant_2_initials or case.complainant_2) + ' v ' + case.respondent %} 
 {% elif case.respondent_2 %}
-  {% set title = (case.complainant_initials or case.complainant or '?') + ' v ' + case.respondent + ' and ' + case.respondent_2 %}
+  {% set title = (case.complainant_initials or case.complainant or '?') + ' v ' + case.respondent + ' and ' + (case.respondent_2 or case.respondent_2_initials) %}
+{% elif case.respondent_2 and case.respondent_3 %}
+  {% set title = (case.complainant_initials or case.complainant or '?') + ' v ' + case.respondent + ' , ' + case.respondent_2 + ' and ' + case.respondent_3 %}
 {% elif case.complainant_2 and case.respondent_2 %}
   {% set title = (case.complainant_initials or case.complainant) + ' and ' + (case.complainant_2_initials or case.complainant_2) + ' v ' + case.respondent + ' & ' + case.respondent_2 %}
 {% endif %}
 
 {# Sector colour map — tag class by sector #}
 {% set sector_colours = {
-  'Banking & Finance':        ('tag-blue',  '#1A6EFF'),
-  'Digital Lending':          ('tag-amber', '#F5A623'),
+  'Banking & Finance':        ('tag-earth', '#C49A6C'),
+  'Digital Lending':          ('tag-earth', '#C49A6C'),
   'Insurance':                ('tag-earth', '#C49A6C'),
-  'Healthcare':               ('tag-blue',  '#1A6EFF'),
-  'Telecommunications':       ('tag-cg',    '#00C47A'),
+  'Healthcare':               ('tag-earth', '#C49A6C'),
+  'Telecommunications':       ('tag-earth', '#C49A6C'),
   'Employment & HR':          ('tag-earth', '#C49A6C'),
-  'Government & Public Sector':('tag-blue', '#1A6EFF'),
-  'Media & Marketing':        ('tag-amber', '#F5A623'),
-  'Betting & Gaming':         ('tag-red',   '#E63030'),
+  'Government & Public Sector':('tag-earth', '#C49A6C'),
+  'Media & Marketing':        ('tag-earth', '#C49A6C'),
+  'Betting & Gaming':         ('tag-earth', '#C49A6C'),
   'Other':                    ('tag-earth', '#C49A6C'),
 } %}
 {% set sector_tag = sector_colours.get(case.sector, ('tag-earth', '#C49A6C')) %}
@@ -556,7 +558,7 @@
 
 {# ── CASE HEADER ── #}
 <div class="case-header">
-  <h1 class="case-title">{{ title }}</h1>
+<h1 style="font-family:var(--font-display); font-size:2.22rem; class="case-title">{{ title }}</h1>
 
   <div class="case-quickfacts">
     <span class="qf-item">
@@ -571,30 +573,37 @@
     {% endif %}
     {% if case.sector %}
     <span class="qf-item">
-      <span class="qf-label">Sector</span>
+      <span class="qf-label"><strong>Sector</strong></span>
       <span class="tag {{ sector_tag[0] }}">{{ case.sector }}</span>
     </span>
     {% endif %}
     {% if case.determination_date %}
     <span class="qf-item">
-      <span class="qf-label">Determined On</span>
+      <span class="qf-label"><strong>Determined On</strong></span>
       {{ case.determination_date[:10] }}
     </span>
     {% endif %}
     {% if case.outcome_type %}
     <span class="qf-item">
-      <span class="qf-label">Outcome</span>
-      <span class="tag {% if 'enforcement' in case.outcome_type %}tag-red{% elif case.outcome_type == 'dismissed' %}tag-earth{% else %}tag-cg{% endif %}">
+      <span class="qf-label"><strong>Outcome</strong></span>
+      <span class="tag {% if 'enforcement' in case.outcome_type %}tag-earth{% elif case.outcome_type == 'dismissed' %}tag-earth{% else %}tag-earth{% endif %}">
         {{ case.outcome_type.replace('_', ' ') }}
       </span>
     </span>
     {% endif %}
     {% if case.quantum and case.quantum > 0 %}
     <span class="qf-item">
-      <span class="qf-label">Award</span>
+      <span class="qf-label"><strong>Award</strong></span>
       <span class="qf-quantum">KES {{ '{:,.0f}'.format(case.quantum) }}</span>
     </span>
     {% endif %}
+   {% if respondent_case_count and respondent_case_count > 1 %}
+   <span class="qf-item">
+      <span class="qf-label"><strong>Respondent History</strong></span>
+      <span class="recidivism-badge">{{ respondent_case_count }} appearances</span>
+    </span>
+   {% endif %}
+
   </div>
 
   {# Citations #}
@@ -644,14 +653,14 @@
 <div class="panel-strip" role="tablist" aria-label="Case content panels">
   <button class="panel-btn" role="tab" onclick="activatePanel('summary')"   id="btn-summary"   aria-selected="false">Summary</button>
   <button class="panel-btn ai-btn" role="tab" onclick="activatePanel('simple')" id="btn-simple" aria-selected="false">
-    Simple <span class="ai-badge">AI</span>
+    TL;DR <span class="ai-badge">AI</span>
   </button>
   <button class="panel-btn ai-btn" role="tab" onclick="activatePanel('swahili')" id="btn-swahili" aria-selected="false">
     Swahili <span class="ai-badge">AI</span>
   </button>
   <button class="panel-btn" role="tab" onclick="activatePanel('metadata')"  id="btn-metadata"  aria-selected="false">Metadata</button>
   <button class="panel-btn" role="tab" onclick="activatePanel('terms')"     id="btn-terms"     aria-selected="false">
-    Key Concepts & Terms{% if terms %} <span style="color:var(--earth-warm);font-size:0.58rem;">({{ terms|length }})</span>{% endif %}
+    Concepts & Terms{% if terms %} <span style="color:var(--earth-warm);font-size:0.58rem;">({{ terms|length }})</span>{% endif %}
   </button>
 <button class="panel-btn" role="tab" onclick="activatePanel('flags')"     id="btn-flags"     aria-selected="false">
     Flags{% if raw_flags %} <span style="color:var(--earth-warm);font-size:0.58rem;">({{ raw_flags|length }})</span>{% endif %}
@@ -684,8 +693,8 @@
         {% for v in violations %}
         <div class="violation-row">
           <div class="violation-row-header">
-            <span class="violation-section-num">Section {{ v.section_number or v.section_number_raw or '?' }}</span>
-            {% if v.section_title %}<span class="violation-section-title">{{ v.section_title }}</span>{% endif %}
+            <span class="violation-section-num"><strong>Section {{ v.section_number or v.section_number_raw or '?' }}</strong></span>
+            {% if v.section_title %}<span class="violation-section-title"><strong>{{ v.section_title }}</strong></span>{% endif %}
             <div class="violation-severity">
               {% for i in range(5) %}
               <div class="sev-dot {% if i < (v.severity | int) %}on{% endif %}"></div>
@@ -709,14 +718,15 @@
 	  {% if case.complainant_2 %}<tr><td><strong>2nd Complainant</strong></td><td>{{ case.complainant_2_fullname or case.complainant_2 }}</td></tr>{% endif %}
           <tr><td><strong>Respondent</strong></td><td>{{ case.respondent }}</td></tr>
           {% if case.respondent_2 %}<tr><td><strong>2nd Respondent</strong></td><td>{{ case.respondent_2 }}</td></tr>{% endif %}
+          {% if case.respondent_3 %}<tr><td><strong>3rd Respondent</strong></td><td>{{ case.respondent_3 }}</td></tr>{% endif %}
           <tr><td><strong>Respondent Type</strong></td><td>{{ (case.respondent_type or '—').replace('_', ' ') }}</td></tr>
           <tr><td><strong>Sector</strong></td><td>{{ case.sector or '—' }}</td></tr>
           <tr><td><strong>Determination Date</strong></td><td>{{ case.determination_date or '—' }}</td></tr>
           <tr><td><strong>Complaint Date</strong></td><td>{{ case.complaint_date or '—' }}</td></tr>
           <tr><td><strong>Cause Of Action</strong></td><td>{{ case.breach_date or '—' }} {% if case.coa_type %}({{ case.coa_type }}){% endif %}</td></tr>
           <tr><td><strong>Outcome</strong></td><td>{{ (case.outcome_type or '—').replace('_', ' ') }}</td></tr>
-          <tr><td><strong>Quantum Requested</strong></td><td>{% if case.quantum_requested %}KES {{ '{:,.0f}'.format(case.quantum_requested) }}{% else %}—{% endif %}</td></tr>
-          <tr><td><strong>Quantum Awarded</strong></td><td>{% if case.quantum and case.quantum > 0 %}KES {{ '{:,.0f}'.format(case.quantum) }}{% else %}—{% endif %}</td></tr>
+          <tr><td><strong>Quantum Requested</strong></td><td>{% if case.quantum_requested %}KES {{ '{:,.0f}'.format(case.quantum_requested) }}{% else %}No specific amount pleaded{% endif %}</td></tr>
+          <tr><td><strong>Quantum Awarded</strong></td><td>{% if case.quantum and case.quantum > 0 %}KES {{ '{:,.0f}'.format(case.quantum) }}{% else %}NIL{% endif %}</td></tr>
           <tr><td><strong>Enforcement Notice</strong></td><td><span class="{{ 'meta-bool-yes' if case.enforcement_notice else 'meta-bool-no' }}">{{ 'Yes' if case.enforcement_notice else 'No' }}</span></td></tr>
           <tr><td><strong>Prosecution Recommended</strong></td><td><span class="{{ 'meta-bool-yes' if case.prosecution_recommended else 'meta-bool-no' }}">{{ 'Yes' if case.prosecution_recommended else 'No' }}</span></td></tr>
           <tr><td><strong>Parallel Proceedings</strong></td><td><span class="{{ 'meta-bool-yes' if case.parallel_proceedings else 'meta-bool-no' }}">{{ 'Yes' if case.parallel_proceedings else 'No' }}</span></td></tr>

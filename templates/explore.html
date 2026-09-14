@@ -35,7 +35,7 @@
     font-size: 0.62rem;
     letter-spacing: 0.24em;
     text-transform: uppercase;
-    color: var(--cg-mid);
+    color: var(--pitch-black);
     margin-bottom: 10px;
     display: flex;
     align-items: center;
@@ -208,9 +208,9 @@
   .results-count-text {
     font-family: var(--font-mono);
     font-size: 0.68rem;
-    color: var(--earth-warm);
+    color: var(--cg-deep);
   }
-  .results-count-text strong { color: var(--alert-amber); } /*(--cg-bright); }*/
+  .results-count-text strong { color: var(--cg-deep); }
 
   .sort-control {
     display: flex;
@@ -257,9 +257,9 @@
 
   .explore-card-title {
     font-family: var(--font-display);
-    font-size: 0.98rem;
+    font-size: 1.15rem;
     font-weight: 700;
-    color: var(--alert-amber); /*(--cg-bright);*/
+    color: var(--cg-deep);
     transition: color 0.2s;
     flex: 1;
   }
@@ -304,7 +304,7 @@
     padding: 2px 7px;
     border-radius: 2px;
     border: 1px solid rgba(0,229,160,0.2);
-    color: var(--cg-mid);
+    color: var(--cg-deep);
     background: (0,229,160,0.05);
     letter-spacing: 0.06em;
   }
@@ -474,7 +474,7 @@
     <div class="explore-input-zone">
       <p class="explore-eyebrow">Explore</p>
       <h1 class="explore-heading">Ask the Corpus</h1>
-      <p class="explore-sub">
+      <p style=font-size:0.92rem; class="explore-sub">
         Use natural language — legal concepts, technical terms, DPA sections,
         party names, or complaint references.
       </p>
@@ -507,6 +507,7 @@
 	  <option value="Penalty Notice">Penalty Notice</option>
           <option value="Dismissed">Dismissed</option>
           <option value="Prosecution Recommended">Prosecution</option>
+          <option value="Dismissed & Prosecution Recommended">Dismissed & Prosecution Recommended</option>
           <option value="Compensation & Cease-Use Order">Compensation & Cease-Use</option>
 	  <option value="Compensation & Conditional Enforcement Notice">Compensation & Cond.EN</option>
           <option value="Compensation & Prosecution Recommended">Compensation & Prosecution</option>
@@ -551,6 +552,12 @@
   <!-- ═══ RIGHT: SIDEBAR ══════════════════════════════════════ -->
   <aside class="explore-sidebar">
 
+   <!-- This Search -->
+   <div class="sidebar-block" id="contextStatsBlock" style="display:none;">
+     <h3>This Search</h3>
+     <div class="filter-list" id="contextStatsList"></div>
+   </div>
+
     <!-- Search History -->
     <div class="sidebar-block">
       <h3>Search History</h3>
@@ -584,21 +591,6 @@
         <div class="filter-link" onclick="setHint(this, 'Healthcare')">
           Healthcare <span class="filter-link-count" id="cnt-healthcare">—</span>
         </div>
-      </div>
-    </div>
-
-    <!-- Landmark Cases (static curated links) -->
-    <div class="sidebar-block">
-      <h3>Landmark Cases</h3>
-      <div id="landmarkList">
-        {% for lm in landmark_cases %}
-        <div class="history-item">
-          <a href="/case/{{ lm.id }}">{{ lm.title }}</a>
-          <span class="history-item-meta">{{ lm.sector }} · {{ lm.year }}</span>
-        </div>
-        {% else %}
-        <p class="sidebar-empty">Landmark determinations will appear here.</p>
-        {% endfor %}
       </div>
     </div>
 
@@ -709,6 +701,28 @@ function renderExploreResults() {
     return;
   }
 
+  const csBlock = document.getElementById('contextStatsBlock');
+  const csList  = document.getElementById('contextStatsList');
+
+  if (data.context_stats) {
+    csBlock.style.display = '';
+    const cs = data.context_stats;
+    csList.innerHTML = `
+      <div class="filter-link" style="cursor:default;">
+        <span>Most common outcome</span>
+        <span class="filter-link-count">${cs.most_common_outcome || '—'}</span>
+      </div>
+      ${cs.avg_quantum_for_sector ? `
+      <div class="filter-link" style="cursor:default;">
+        <span>Avg. award (this sector)</span>
+        <span class="filter-link-count">KES ${Number(cs.avg_quantum_for_sector).toLocaleString()}</span>
+      </div>` : ''}
+      <div class="filter-link" style="cursor:default;">
+        <span>Respondents with 2+ cases</span>
+        <span class="filter-link-count">${cs.recidivist_respondent_count}</span>
+      </div>`;
+}
+	
   const band = document.createElement('div');
   band.className = 'explore-result-band';
 
@@ -741,18 +755,21 @@ function renderExploreResults() {
   });
 }
 
+function ordinal(n) {
+  const s = ['th','st','nd','rd'], v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+
 function buildExploreCard(c, i) {
-  const delay     = i * 50;
+  const delay = i * 40;
   const matchTags = (c.matched_fields || [])
     .map(f => `<span class="match-field">${f}</span>`).join('');
-  const theme     = c.theme
-    ? `<div class="explore-card-theme">${c.theme}</div>` : '';
-  const summary   = c.summary
-    ? `<p class="explore-card-summary">${c.summary}</p>` : '';
-  const sector    = c.sector
-    ? `<span><strong>Sector:</strong> ${c.sector}</span>` : '';
-  const quantum   = c.quantum
-    ? `<span><strong>Award:</strong> KES ${Number(c.quantum).toLocaleString()}</span>` : '';
+  const theme   = c.theme ? `<div class="explore-card-theme">${c.theme}</div>` : '';
+  const summary = c.summary ? `<p class="explore-card-summary">${c.summary}</p>` : '';
+  const sector  = c.sector ? `<span><strong>Sector:</strong> ${c.sector}</span>` : '';
+  const quantum = c.quantum ? `<span><strong>Award:</strong> KES ${Number(c.quantum).toLocaleString()}</span>` : '';
+  const recidivism = (c.respondent_case_count > 1)
+    ? `<span class="recidivism-badge">Respondent's ${ordinal(c.respondent_case_count)} appearance</span>` : '';
 
   return `
   <div class="explore-card" style="animation-delay:${delay}ms">
@@ -765,6 +782,7 @@ function buildExploreCard(c, i) {
       ${c.date ? `<span><strong>Date:</strong> ${c.date}</span>` : ''}
       ${quantum}
       ${c.outcome_type ? `<span><strong>Outcome:</strong> ${c.outcome_type}</span>` : ''}
+      ${recidivism}
     </div>
     ${matchTags ? `<div class="match-fields">${matchTags}</div>` : ''}
     ${theme}

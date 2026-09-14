@@ -39,8 +39,8 @@
     .glitch-name {
       font-family: var(--font-display);
       font-size: 2.6rem;
-      font-weight: 800;
-      color: var(--alert-amber);
+      font-weight: 700;
+      color: var(--cg-deep);
       letter-spacing: -0.03em;
       line-height: 1;
     }
@@ -90,6 +90,13 @@
       font-size: 0.62rem;
       letter-spacing: 0.1em;
       text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.15s, filter 0.15s;
+    }
+
+    .audience-pill:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.15);
     }
 
     .pill-lawyer  { background: rgba(26,110,255,0.1); color: var(--alert-blue); border: 1px solid rgba(26,110,255,0.3); }
@@ -107,10 +114,10 @@
 
     .layer-legend h4 {
       font-family: var(--font-mono);
-      font-size: 0.62rem;
+      font-size: 0.92rem;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: var(--alert-amber);
+      color: var(--pitch-black);
       margin-bottom: 14px;
       padding-bottom: 8px;
       border-bottom: 1px solid rgba(245,166,35,0.15);
@@ -120,13 +127,39 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      width: 100%;
       padding: 6px 0;
       border-bottom: 1px solid rgba(196,154,108,0.06);
       font-family: var(--font-mono);
       font-size: 0.7rem;
+      background: none;
+      border-left: none;
+      border-right: none;
+      border-top: none;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.15s, padding-left 0.15s;
     }
 
     .layer-item:last-child { border-bottom: none; }
+
+    .layer-item-btn:hover {
+      background: var(--glitch-accent-soft);
+      padding-left: 6px;
+    }
+
+    .layer-item-btn.layer-item-active {
+      background: var(--glitch-accent-soft);
+      border-left: 2px solid var(--glitch-accent);
+      padding-left: 4px;
+    }
+
+    .layer-item-all {
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--glitch-accent);
+    }
 
     .layer-dot {
       width: 8px;
@@ -277,10 +310,10 @@
     <nav class="site-nav">
       <a href="/explore"       class="nav-key">Explore</a>
       <a href="/sector-search" class="nav-key">Sector Search</a>
-      <a href="/patterns"      class="nav-key">Observe Patterns</a>
+      <a href="/sections"      class="nav-key">Sections</a>
+      <a href="/patterns"      class="nav-key">Patterns</a>
       <a href="/glitch"        class="nav-key glitch-key active">reading glitch_</a>
       <a href="/wall"          class="nav-key">Data Rights Hub</a>
-      <a href="/login"         class="nav-key nav-login">Login</a>
     </nav>
   </header>
 
@@ -300,50 +333,53 @@
       <p class="glitch-tagline">
         From tech breach to legal remedy.
       </p>
-      <p class="glitch-about">
+      <p style=font-size:0.92rem; class="glitch-about">
         the glitch_ provides deeper insights into the data breaches that the Office of the
         Data Protection Commissioner has investigated.
       </p>
-      <p class="glitch-about" style="margin-top:10px;">
+      <p style=font-size:0.92rem; class="glitch-about" style="margin-top:10px;">
         Each entry is structured by <em>organisational layer</em> to help readers build
         pattern recognition across incidents. The organisational layer indicates where
         the failure originated within the organisation.
       </p>
       <div class="audience-row">
-        <span class="audience-pill pill-lawyer">For Lawyers</span>
-        <span class="audience-pill pill-tech">For Technologists</span>
-        <span class="audience-pill pill-general">For Compliance Teams</span>
+        <button class="audience-pill pill-lawyer" onclick="applyAudiencePreset('lawyer')">For Lawyers</button>
+        <button class="audience-pill pill-tech" onclick="applyAudiencePreset('tech')">For Technologists</button>
+        <button class="audience-pill pill-general" onclick="applyAudiencePreset('compliance')">For Compliance Teams</button>
       </div>
     </div>
 
     <!-- Right: layer legend -->
     <div class="layer-legend">
       <h4>Organisational Layers</h4>
-      <div class="layer-item">
+      <button class="layer-item layer-item-btn" data-layer="" onclick="filterByLayer('')">
+        <span class="layer-name layer-item-all">All Entries</span>
+      </button>
+      <button class="layer-item layer-item-btn" data-layer="Infrastructure layer" onclick="filterByLayer('Infrastructure layer')">
         <div class="layer-dot dot-infra"></div>
         <span class="layer-name">Infrastructure Layer</span>
         <span class="layer-count">Network, hardware &amp; system failures</span>
-      </div>
-      <div class="layer-item">
+      </button>
+      <button class="layer-item layer-item-btn" data-layer="Process layer" onclick="filterByLayer('Process layer')">
         <div class="layer-dot dot-process"></div>
         <span class="layer-name">Process Layer</span>
         <span class="layer-count">Failures in procedures &amp; workflows</span>
-      </div>
-      <div class="layer-item">
+      </button>
+      <button class="layer-item layer-item-btn" data-layer="Human layer" onclick="filterByLayer('Human layer')">
         <div class="layer-dot dot-human"></div>
         <span class="layer-name">Human Layer</span>
         <span class="layer-count">Human error &amp; social engineering</span>
-      </div>
-      <div class="layer-item">
+      </button>
+      <button class="layer-item layer-item-btn" data-layer="Policy layer" onclick="filterByLayer('Policy layer')">
         <div class="layer-dot dot-policy"></div>
         <span class="layer-name">Policy Layer</span>
         <span class="layer-count">Policy, governance &amp; structure</span>
-      </div>
-      <div class="layer-item">
+      </button>
+      <button class="layer-item layer-item-btn" data-layer="Application layer" onclick="filterByLayer('Application layer')">
         <div class="layer-dot dot-application"></div>
         <span class="layer-name">Application Layer</span>
         <span class="layer-count">Software &amp; app-level failures</span>
-      </div>
+      </button>
     </div>
   </div>
 
@@ -413,11 +449,9 @@
       </div>
 
       <div class="results-area" id="glitchResultsArea">
-        <!-- Default empty hint -->
-        <div class="no-results" style="margin-top:8px; border-style: dashed;">
-          <div class="glyph" style="font-size:1.2rem;">↑</div>
-          <p>Sample entries shown above. Use the search bar to find specific glitch_ analyses.</p>
-        </div>
+        <div class="card-skeleton"></div>
+        <div class="card-skeleton"></div>
+        <div class="card-skeleton"></div>
       </div>
     </div>
 
@@ -549,6 +583,51 @@
     /* ── ENTER KEY ───────────────────────────────────── */
     document.getElementById('glitchSearchInput').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doGlitchSearch(); }
+    });
+
+    /* ── LAYER LEGEND → LIVE FILTER ─────────────────────
+       Clicking a layer row runs a scoped search and clears the
+       other filters, so results always reflect the clicked layer
+       alone rather than compounding with a stale query. */
+    function filterByLayer(layer) {
+      document.getElementById('layerFilter').value = layer || '';
+      document.getElementById('sectorFilter').value = '';
+      document.getElementById('dateFilter').value = '';
+      document.getElementById('glitchSearchInput').value = '';
+      highlightActiveLayer(layer);
+      doGlitchSearch();
+    }
+
+    function highlightActiveLayer(layer) {
+      document.querySelectorAll('.layer-item-btn').forEach(function (btn) {
+        btn.classList.toggle('layer-item-active', btn.dataset.layer === (layer || ''));
+      });
+    }
+
+    /* ── AUDIENCE PRESETS ─────────────────────────────────
+       Placeholder mapping — lawyer→Process layer, compliance→
+       Policy layer, tech→no layer filter (browses everything by
+       recency). This is my best guess at a useful default, not a
+       confirmed taxonomy decision — say the word if you want a
+       different mapping. */
+    function applyAudiencePreset(role) {
+      document.getElementById('glitchSearchInput').value = '';
+      document.getElementById('sectorFilter').value = '';
+      document.getElementById('dateFilter').value = '';
+      let layer = '';
+      if (role === 'lawyer')     layer = 'Process layer';
+      if (role === 'compliance') layer = 'Policy layer';
+      document.getElementById('layerFilter').value = layer;
+      highlightActiveLayer(layer);
+      doGlitchSearch();
+    }
+
+    /* ── LOAD DEFAULT ENTRIES ON PAGE OPEN ─────────────
+       Empty query, no filters — API already returns everything
+       ordered by published_date DESC, so this alone turns the
+       page from "empty until you search" into a live feed. */
+    document.addEventListener('DOMContentLoaded', function () {
+      doGlitchSearch();
     });
   </script>
 

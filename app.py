@@ -24,8 +24,6 @@ from flask import Flask, render_template, request, jsonify, g
 from flask import abort
 
 # ── APP INIT ──────────────────────────────────────────────
-READ_ONLY = os.environ.get("READ_ONLY", "false").lower() == "true"
-
 app = Flask(__name__)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "odpc.db")
@@ -57,7 +55,7 @@ INCIDENT_TYPES = [
     "Consent mechanism failure", "Failure to action data subject rights",
     "Integration layer failure", "Governance failure",
     "Obstruction of Data Commissioner",
-    "Processing of minors' personal data without parental consent"
+    "Processing of minors' personal data without parental consent",
     "Other",
 ]
 
@@ -68,13 +66,7 @@ OUTCOME_TYPES = [
     "Conditional Enforcement Notice", "Compensation & Conditional Enforcement Notice",
     "Penalty Notice", "Compensation & Prosecution Recommended",
     "Compensation & Cease-User Order", "Compensation & Direct Order",
-]
-
-# Curated landmark cases surfaced in Explore sidebar.
-# These IDs are updated manually after ingestion is complete.
-# Format: list of dicts with id, title, sector, year.
-LANDMARK_CASES = [
-    # populated post-ingestion; keep as empty list for now
+    "Dismissed & Prosecution Recommended",
 ]
 
 
@@ -82,7 +74,7 @@ LANDMARK_CASES = [
 SYNONYM_MAP = {
     "image":       ["photograph", "picture", "likeness", "photo"],
     "social media":["instagram", "facebook", "twitter", "whatsapp", "X", "tinder", "mtandao"],
-    "loan":        ["credit", "lending", "microfinance", "digital lending", "kopa"],
+    "loan":        ["credit", "lending", "microfinance", "digital lending", "kopa", "digital credit"],
     "consent":     ["permission", "authorisation", "agreement"],
     "employee":    ["staff", "worker", "personnel"],
 }
@@ -135,7 +127,6 @@ def explore():
     return render_template(
         "explore.html",
         active_nav="explore",
-        landmark_cases=LANDMARK_CASES,
     )
 
 
@@ -191,6 +182,17 @@ def case_detail(case_id):
         "SELECT * FROM determinations WHERE id = ?", (case_id,)
     ).fetchone()
 
+    recidivism_row = db.execute(
+    """
+    	SELECT COUNT(*) FROM determinations
+    	WHERE respondent = ?
+      	  AND (determination_date < ?
+               OR (determination_date = ? AND id <= ?))
+    """,
+    	(case["respondent"], case["determination_date"], case["determination_date"], case_id),
+    ).fetchone()
+    respondent_case_count = recidivism_row[0] if recidivism_row else 1
+
     if not case:
         return render_template("404.html"), 404
 
@@ -239,6 +241,7 @@ def case_detail(case_id):
         terms=terms,
         citations=citations,
         glitch_entry=glitch_entry,
+        respondent_case_count=respondent_case_count,
     )
 
 
@@ -394,7 +397,12 @@ def api_search():
         rows = db.execute(
             f"""
             SELECT d.*,
-                   bm25(det_fts) AS relevance_score
+                   bm25(det_fts) AS relevance_score,
+		   (SELECT COUNT(*) FROM determinations d2
+		    WHERE d2.respondent = d.respondent
+			AND (d2.determination_date < d.determination_date
+			    OR (d2.determination_date = d.determination_date AND d2.id <= d.id))
+		   ) AS respondent_case_count
             FROM det_fts
             JOIN determinations d ON d.id = det_fts.rowid
             {fts_where}
@@ -424,6 +432,11 @@ def api_search():
         rows = db.execute(
             f"""
             SELECT d.*, NULL AS relevance_score
+		   (SELECT COUNT(*) FROM determinations d2
+		    WHERE d2.respondent = d.respondent
+			AND (d2.determination_date < d.determination_date
+			    OR (d2.determination_date = d.determination_date AND d2.id <= d.id))
+		   ) AS respondent_case_count
             FROM determinations d
             {like_where}
             ORDER BY d.determination_date DESC
@@ -472,7 +485,8 @@ def api_search():
             "theme":          _extract_theme(r.get("important_flags")),
             "summary":        _truncate(r.get("merits"), 280),
             "citations":      None,   # populated below if needed
-            "matched_fields": _infer_matched_fields(r, q),
+	    "respondent_case_count": r.get("respondent_case_count") or 1,
+	    "matched_fields": _infer_matched_fields(r, q),
         })
 
     # Hydrate cross-citations for the result set (one extra query)
@@ -496,6 +510,8 @@ def api_search():
             if refs:
                 r["citations"] = " · ".join(refs[:3])  # cap at 3 for display
 
+    context_stats = _context_stats(db, sector, where_clause, params)
+
     return jsonify({
         "results":        results,
         "total":          total,
@@ -503,7 +519,44 @@ def api_search():
         "sector_counts":  sector_counts,
         "total_corpus":   total_corpus,
         "highest_quantum": highest_q,
+	"context_stats":   context_stats,
     })
+
+def _context_stats(db, sector, where_clause, params):
+    """Stats for the Explore sidebar — scoped to current filters."""
+    outcome_row = db.execute(
+        f"""
+        SELECT d.outcome_type, COUNT(*) AS c
+        FROM determinations d
+        {where_clause}
+        {"AND" if where_clause else "WHERE"} d.outcome_type IS NOT NULL
+        GROUP BY d.outcome_type ORDER BY c DESC LIMIT 1
+        """,
+        params,
+    ).fetchone()
+
+    avg_sector_q = None
+    if sector and sector != "all":
+        row = db.execute(
+            "SELECT ROUND(AVG(quantum),0) FROM determinations WHERE sector = ? AND quantum > 0",
+            (sector,),
+        ).fetchone()
+        avg_sector_q = row[0] if row else None
+
+    recidivist_count = db.execute(
+        """
+        SELECT COUNT(*) FROM (
+            SELECT respondent FROM determinations
+            GROUP BY respondent HAVING COUNT(*) > 1
+        )
+        """
+    ).fetchone()[0]
+
+    return {
+        "most_common_outcome": outcome_row["outcome_type"] if outcome_row else None,
+        "avg_quantum_for_sector": avg_sector_q,
+        "recidivist_respondent_count": recidivist_count,
+    }
 
 
 @app.route("/api/glitch/search")
@@ -786,13 +839,11 @@ def api_case_transform(case_id):
     if mode not in ("simple", "swahili"):
         return jsonify({"error": "mode must be 'simple' or 'swahili'"}), 400
 
-    if READ_ONLY:
-        return render_template("read_only_notice.html",
-		               corpus_stats=_corpus_stats()), 403
-
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
-        return jsonify({"error": "ANTHROPIC_API_KEY not set."}), 503
+        return jsonify({
+            "error": "ANTHROPIC_API_KEY not set. Set it in your environment to enable this feature."
+        }), 503
 
     db = get_db()
 
@@ -1612,6 +1663,41 @@ def _sector_counts(db):
     ).fetchall()
     return {r["sector"]: r["c"] for r in rows}
 
+def _context_stats(db, sector, where_clause, params):
+    """Stats for the Explore sidebar — scoped to current filters."""
+    outcome_row = db.execute(
+        f"""
+        SELECT d.outcome_type, COUNT(*) AS c
+        FROM determinations d
+        {where_clause}
+        {"AND" if where_clause else "WHERE"} d.outcome_type IS NOT NULL
+        GROUP BY d.outcome_type ORDER BY c DESC LIMIT 1
+        """,
+        params,
+    ).fetchone()
+
+    avg_sector_q = None
+    if sector and sector != "all":
+        row = db.execute(
+            "SELECT ROUND(AVG(quantum),0) FROM determinations WHERE sector = ? AND quantum > 0",
+            (sector,),
+        ).fetchone()
+        avg_sector_q = row[0] if row else None
+
+    recidivist_count = db.execute(
+        """
+        SELECT COUNT(*) FROM (
+            SELECT respondent FROM determinations
+            GROUP BY respondent HAVING COUNT(*) > 1
+        )
+        """
+    ).fetchone()[0]
+
+    return {
+        "most_common_outcome": outcome_row["outcome_type"] if outcome_row else None,
+        "avg_quantum_for_sector": avg_sector_q,
+        "recidivist_respondent_count": recidivist_count,
+    }
 
 def _highest_quantum_in_set(db, where_clause, params):
     row = db.execute(

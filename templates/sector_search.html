@@ -9,6 +9,7 @@
 
   /* Sector header band — description */
   .sector-header {
+    font-family: var(--font-display);
     padding: 32px 48px 0;
     border-bottom: none;
     background:
@@ -33,6 +34,53 @@
     gap: 8px;
     padding: 24px 48px;
     border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  /* Quick-stat toast — appears at grid top-right immediately on
+     sector click, since the real stats band is below the fold. */
+  .sector-quickstat-toast {
+    position: static;
+    top: 30px;
+    right: 24px;
+    background: var(--bg-panel);
+    border: 1px solid var(--cg-mid);
+    border-radius: 3px;
+    padding: 10px 16px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--pitch-black);
+    box-shadow: 0 6px 20px -6px rgba(0,0,0,0.25);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    z-index: 5;
+    animation: toastIn 0.25s var(--ease-out) both;
+  }
+
+  .sector-quickstat-toast.visible { display: flex; }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .quickstat-count strong { color: var(--cg-mid); font-size: 0.8rem; }
+
+  .quickstat-scroll-cta {
+    background: none;
+    border: none;
+    color: var(--cg-deep);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    padding: 0;
+  }
+
+  @media (max-width: 1000px) {
+    .sector-quickstat-toast { position: static; margin: 12px 24px 0; }
   }
 
   .sector-card {
@@ -204,7 +252,7 @@
   <!-- ══ PAGE HEADER ══════════════════════════════════════════ -->
   <div class="sector-header">
     <p class="page-eyebrow">Sector Search</p>
-    <h1 class="page-title">Search by Sector or Industry</h1>
+    <h1 style="font-family:var(--font-display); class="page-title">Search by Sector or Industry</h1>
     <p>
       Filter determinations by industry. Select a sector below, then refine
       with keywords, date range, or outcome type. Each sector card shows the
@@ -214,6 +262,11 @@
 
   <!-- ══ SECTOR CARD GRID — generated from app.py SECTORS ═══ -->
   <!-- data-sector values MUST match the sector strings in the DB exactly -->
+    <div class="sector-quickstat-toast" id="sectorQuickstat">
+      <span class="quickstat-count"><strong id="quickstatCount">—</strong> cases</span>
+      <button class="quickstat-scroll-cta" onclick="scrollToSectorResults()">↓ scroll for results</button>
+    </div>
+
   <div class="sector-grid" id="sectorGrid">
 
     <button class="sector-card all-card active" data-sector="all" onclick="selectSector(this)">
@@ -426,6 +479,7 @@
 	    <option value="Penalty Notice">Penalty Notice</option>
             <option value="Dismissed">Dismissed</option>
             <option value="Prosecution Recommended">Prosecution</option>
+            <option value="Dismissed & Prosecution Recommended">Dismissed & Prosecution Recommended</option>
             <option value="Compensation & Cease-Use Order">Compensation & Cease-Use</option>
 	    <option value="Compensation & Conditional Enforcement Notice">Compensation & Cond.EN</option>
             <option value="Compensation & Prosecution Recommended">Compensation & Prosecution</option>
@@ -482,20 +536,41 @@ let currentTotalPages = 1;
 let lastSectorData = null;
 
 /* ── SECTOR CARD SELECT ──────────────────────────── */
+let quickstatTimer = null;
+
 function selectSector(card) {
   document.querySelectorAll('.sector-card').forEach(c => c.classList.remove('active'));
   card.classList.add('active');
   activeSector = card.dataset.sector;
 
   const band = document.getElementById('activeSectorBand');
+  const toast = document.getElementById('sectorQuickstat');
+
   if (activeSector === 'all') {
     band.style.display = 'none';
+    toast.classList.remove('visible');
+    if (quickstatTimer) clearTimeout(quickstatTimer);
   } else {
     document.getElementById('activeSectorName').textContent = activeSector;
     band.style.display = 'flex';
+
+    // Count is already sitting in the clicked card's own DOM — no
+    // extra fetch needed, just read what's already rendered there.
+    const countEl = card.querySelector('.sector-card-count strong');
+    document.getElementById('quickstatCount').textContent = countEl ? countEl.textContent : '—';
+    toast.classList.add('visible');
+
+    if (quickstatTimer) clearTimeout(quickstatTimer);
+    quickstatTimer = setTimeout(() => toast.classList.remove('visible'), 4500);
   }
 
   doSectorSearch();
+}
+
+function scrollToSectorResults() {
+  document.getElementById('activeSectorBand').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('sectorQuickstat').classList.remove('visible');
+  if (quickstatTimer) clearTimeout(quickstatTimer);
 }
 
 /* ── SECTOR SEARCH ───────────────────────────────── */
@@ -605,7 +680,7 @@ function changePage(newPage) {
 
   /* ── BUILD CASE CARD ─────────────────────────────── */
 function buildSectorCard(c, i) {
-  const delay    = i * 55;
+  const delay    = i * 40;
   const outcome  = c.outcome_type
     ? `<div class="card-outcome-badge"><span class="outcome-tag outcome-tag-${outcomeSeverity(c.outcome_type)}">[${c.outcome_type.toUpperCase()}]</span></div>`
     : '';
@@ -613,6 +688,8 @@ function buildSectorCard(c, i) {
     ? `<div class="card-citations"><strong>Citations:</strong> ${c.citations}</div>` : '';
   const quantum  = c.quantum
     ? `<span><strong>Award:</strong> <span class="quantum-highlight">KES ${Number(c.quantum).toLocaleString()}</span></span>` : '';
+  const recidivism = (c.respondent_case_count > 1)
+    ? `<span class="recidivism-badge">Respondent has appeared ${(c.respondent_case_count)} times</span>` : '';
 
   return `
   <div class="case-card" style="animation-delay:${delay}ms; position:relative;">
@@ -623,6 +700,7 @@ function buildSectorCard(c, i) {
       <span><strong>Ref:</strong> ${c.case_ref || '—'}</span>
       ${c.date ? `<span><strong>Date:</strong> ${c.date}</span>` : ''}
       ${quantum}
+      ${recidivism}
     </div>
     ${citations}
     ${c.theme ? `<div class="card-theme">${c.theme}</div>` : ''}
