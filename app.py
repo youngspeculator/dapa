@@ -38,7 +38,7 @@ SECTORS = [
     "Telecommunications", "Employment & HR", "Real Estate",
     "Government & Public Sector", "Media & Marketing", "Sports",
     "Retail & E-Commerce", "Technology & ICT", "Manufacturing", "Energy",
-    "NGOs, CBOs, IGOs & Non-Profits", "Individuals",
+    "NGOs, CBOs, IGOs & Non-Profits", "Individuals", "Entertainment & Events",
 ]
 
 SYSTEM_LAYERS = [
@@ -66,7 +66,7 @@ OUTCOME_TYPES = [
     "Conditional Enforcement Notice", "Compensation & Conditional Enforcement Notice",
     "Penalty Notice", "Compensation & Prosecution Recommended",
     "Compensation & Cease-User Order", "Compensation & Direct Order",
-    "Dismissed & Prosecution Recommended",
+    "Dismissed & Prosecution Recommended", "Resolved & Conditional Enforcement Notice",
 ]
 
 
@@ -1615,7 +1615,7 @@ def _corpus_stats():
         highest   = f"{float(max_q/1000000)}M" if max_q >= 1000000 else f"{int(max_q/1000)}K" if max_q >= 1000 else str(int(max_q))
 
         total_q   = db.execute("SELECT SUM(quantum) FROM determinations WHERE quantum > 0").fetchone()[0]
-        total_quantum = f"{float(total_q/1000000):.1f}M" if total_q >= 1000000 else f"{float(total_q/1000):.1f}k" if total_q >= 1000 else str(int(total_q))
+        total_quantum = f"{float(total_q/1000000):.1f}" if total_q >= 1000000 else f"{float(total_q/1000):.1f}k" if total_q >= 1000 else str(int(total_q))
         en_count  = db.execute("SELECT COUNT(*) FROM determinations WHERE enforcement_notice = 1").fetchone()[0]
 
         by_sector = {}

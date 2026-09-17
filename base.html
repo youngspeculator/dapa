@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="{% block meta_description %}/dapa — ODPC Data Protection Case Research & Regulatory Intelligence{% endblock %}" />
+
+  <title>{% block title %}Pweza{% endblock %} — ODPC Regulatory Intelligence</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Core stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pweza.css') }}" />
+
+  <!-- Page-specific styles -->
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+  <!-- ═══ SITE HEADER ═════════════════════════════════════════ -->
+  <header class="site-header">
+    <a href="/" class="site-logo" aria-label="dapa home">
+      <div class="logo-glyph" aria-hidden="true">/</div>
+      <span class="logo-text">da<span>pa</span></span>
+    </a>
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="/explore"
+         class="nav-key {% if active_nav == 'explore' %}active{% endif %}">
+        SEARCH ALL CASES
+      </a>
+      <a href="/sector-search"
+         class="nav-key {% if active_nav == 'sector-search' %}active{% endif %}">
+        SECTORS & COMPANIES
+      </a>
+      <a href="/sections"
+         class="nav-key {% if active_nav == 'sections' %}active{% endif %}">
+        VIOLATIONS OF THE ACT
+      </a>
+      <a href="/patterns"
+         class="nav-key {% if active_nav == 'patterns' %}active{% endif %}">
+        SEE THE TRENDS
+      </a>
+      <a href="/glitch"
+         class="nav-key glitch-key {% if active_nav == 'glitch' %}active{% endif %}">
+        the Glitch_
+      </a>
+      <a href="/wall"
+         class="nav-key wall-key {% if active_nav == 'wall' %}active{% endif %}">
+        HAKI HUB
+      </a>
+    </nav>
+  </header>
+
+  <!-- ═══ OPTIONAL SUB-HEADER BAND ════════════════════════════ -->
+  {% block sub_header %}{% endblock %}
+
+  <!-- ═══ PAGE CONTENT ════════════════════════════════════════ -->
+  <main class="page-main" id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- ═══ FOOTER ══════════════════════════════════════════════ -->
+  <footer class="site-footer">
+    <div class="footer-about">
+      <a href="/about">About</a>
+      <a href="/methodology">Methodology</a>
+      <a href="/disclaimer">Disclaimer</a>
+    </div>
+    <span style="opacity:0.35; font-family: var(--font-mono); font-size:0.65rem;">
+      © {{ current_year }} Built by Pweza Action
+    </span>
+  </footer>
+
+  <!-- ═══ PAGE-SPECIFIC SCRIPTS ════════════════════════════════ -->
+  {% block extra_js %}{% endblock %}
+
+</body>
+</html>
