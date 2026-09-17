@@ -10,12 +10,12 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     min-height: calc(100vh - 56px - 40px - 56px);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--off-white);
   }
 
   .hero-left {
     padding: 72px 48px 72px 56px;
-    border-right: 1px solid var(--border);
+    border-right: 1px solid var(--off-white);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -26,7 +26,7 @@
 
   .hero-eyebrow {
     font-family: var(--font-mono);
-    font-size: 0.77rem;
+    font-size: 0.50rem;
     letter-spacing: 0.26em;
     text-transform: lowercase;
     color: var(--cg-deep);
@@ -68,9 +68,11 @@
 	.hero-descriptor {
 	  font-family: var(--font-mono);
 	  font-size: 1rem;
+	  font-style: italic;
 	  line-height: 1.5;
 	  color: var(--pitch-black);
 	  max-width: 500px;
+	  margin-top: 20px;	
 	  margin-bottom: 20px;
 	}
 
@@ -90,12 +92,12 @@
 
 	.hero-cta-label {
 	  font-family: var(--font-mono);
-	  font-size: 0.82rem;
+	  font-size: 1.55rem;
 	  font-weight: 700;
 	  letter-spacing: 0.08em;
 	  text-transform: uppercase;
 	}
-	.hero-cta-sub { font-family: var(--font-display); font-weight: 300; font-size: 0.82rem; color: var(--pitch-black); opacity: 2.55; }
+	.hero-cta-sub { font-family: var(--font-display); font-weight: 300; font-size: 0.95rem; color: var(--pitch-black); opacity: 2.55; }
 
 	.hero-cta-wall { border-color: var(--cg-deep); }
 	.hero-cta-wall .hero-cta-label { color: var(--cg-deep); }
@@ -109,14 +111,14 @@
     display: flex;
     flex-direction: column;
     margin-top: 40px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--off-white);
   }
   .stat-row {
     display: flex;
     align-items: baseline;
     gap: 20px;
     padding: 14px 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--off-white);
   }
   .stat-row:first-child { padding-top: 22px; }
   .stat-figure {
@@ -176,38 +178,100 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    padding: 90px 48px 56px;
+    padding: 120px 120px 70px;
     gap: 22px;
   }
 
   .cascade-line {
-    font-family: var(--font-body);
+    font-family: var(--font-mono);
+    color: var(--parchment);
+    line-height: 1.24;
+    opacity: 0.9;
+    font-size: 0.94rem;
+  }
+
+  .cascade-line-2 {
+    font-family: var(--font-mono);
     color: var(--parchment);
     line-height: 1.65;
     opacity: 0.9;
+    font-size: 0.94rem;
   }
 
-  .cascade-1 { max-width: 96%; font-size: 1.02rem; }
-  .cascade-2 { max-width: 86%; font-size: 0.96rem; }
-  .cascade-3 { max-width: 76%; font-size: 0.9rem; }
-  .cascade-4 { max-width: 58%; font-size: 0.86rem; }
-  .cascade-5 { max-width: 82%; font-size: 0.9rem; }
-  .cascade-6 { max-width: 44%; font-size: 0.86rem; }
+  .cascade-line-3 {
+    font-family: var(--font-mono);
+    color: var(--parchment);
+    line-height: 1.65;
+    opacity: 0.9;
+    font-size: 0.94rem;
+  }
+
+  .cascade-line-4 {
+    font-family: var(--font-mono);
+    color: var(--parchment);
+    line-height: 1.65;
+    opacity: 0.9;
+    font-size: 0.94rem;
+  }
+
+  .cascade-line-5 {
+    font-family: var(--font-mono);
+    color: var(--parchment);
+    line-height: 1.65;
+    opacity: 0.9;
+    font-size: 0.94rem;
+  }
+
+  .cascade-line-6 {
+    font-family: var(--font-mono);
+    color: var(--parchment);
+    line-height: 1.65;
+    opacity: 0.9;
+    font-size: 0.94rem;
+  }
+
+
+
+  /* Each cascade-line resets to full width and narrows on its
+     own, step by step — no shrinking carried over between lines. */
+  .cascade-sub { display: block; }
+  .cascade-sub.w1 { width: 100%; }
+  .cascade-sub.w2 { width: 78%; }
+  .cascade-sub.w3 { width: 85%; }
+  .cascade-sub.w4 { width: 80%; }
+
+  @media (max-width: 950px) {
+    .cascade-sub { width: 100% !important; }
+  }
 
   .cascade-trigger {
-    font-family: var(--font-display);
+    font-family: var(--font-mono);
     font-weight: 700;
+    font-size: 1.00rem;
     color: var(--cg-deep);
     text-decoration: none;
-    border-bottom: 2px solid var(--cg-mid);
+    border-bottom: 2px solid var(--off-white);
     transition: color 0.18s, border-color 0.18s;
   }
 
+  .cascade-trigger-2 {
+    padding: 50px 20px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 1.00rem;
+    color: var(--cg-deep);
+    text-decoration: none;
+    border-bottom: 2px solid var(--off-white);
+    transition: color 0.18s, border-color 0.18s;
+  }
+
+
   .cascade-trigger:hover { color: var(--cg-bright); border-color: var(--cg-bright); }
+
   .nav-section {
     padding: 36px 32px;
-    border-right: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--off-white);
+    border-bottom: 1px solid var(--off-white);
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -283,7 +347,7 @@
   .section-cta::after { content: '→'; }
   .nav-section.glitch-section .section-cta { color: var(--alert-amber); }
 
-  @media (max-width: 860px) {
+  @media (max-width: 960px) {
     .hero { grid-template-columns: 1fr; }
     .hero-left { border-right: none; border-bottom: 1px solid var(--border); padding: 48px 28px; }
     .hero-right { grid-template-columns: 1fr; }
@@ -299,9 +363,9 @@
   <!-- LEFT: MASTHEAD -->
   <div class="hero-left">
     <div>
-      <p class="hero-eyebrow">data sovereignty in Kenya</p>
+      <p class="hero-eyebrow">not affiliated with the ODPC</p>
       <h1 class="masthead-title">
-        dapa
+        /dapa
         <span class="line-accent">Kenya's data protection regulatory intelligence layer.</span>
         <span class="line-dim"></span>
       </h1>
@@ -309,35 +373,29 @@
         Search all the rulings. Find the precedent.<br>
         Compare similar cases. Take action.
       </p>
-      <div class="hero-cta-row">
-        <a href="/wall" class="hero-cta hero-cta-wall">
-          <span class="hero-cta-label">Data Rights Hub</span>
-          <span class="hero-cta-sub">Access your data subject rights</span>
-        </a>
-        <a href="/glitch" class="hero-cta hero-cta-glitch">
-          <span class="hero-cta-label">the glitch_</span>
-          <span class="hero-cta-sub">See how tech and law intersect in a breach</span>
-        </a>
-      </div>
     </div>
 
     <div>
       <div class="hero-stat-column">
         <div class="stat-row">
           <span class="stat-figure">{{ corpus_stats.total_cases if corpus_stats else '200+' }}</span>
-          <span class="stat-narrative">determinations synthesised from the ODPC website via OCR</span>
+          <span class="stat-narrative"><strong>determinations</strong> by the Data Commissioner synthesised from the ODPC, deeply synthesised with <strong>case
+	summaries</strong>, <strong>TL;DRs</strong> & <strong>Swahili translations</strong> for the first time.</span>
         </div>
         <div class="stat-row">
           <span class="stat-figure">{{ corpus_stats.sectors if corpus_stats else '14' }}</span>
-          <span class="stat-narrative">sectors arranged to divide companies into searchable industries for easy access and analysis</span>
+          <span class="stat-narrative">sectors arranged to divide companies into their respective <strong>industries</strong> for easy access and analysis.
+	Observe how enforcement patterns emerge in different sectors.</span>
         </div>
         <div class="stat-row">
           <span class="stat-figure">{{ corpus_stats.en_count if corpus_stats else '—' }}</span>
-          <span class="stat-narrative">enforcement notices issued by the ODPC against companies that violated the Data Protection Act, 2019</span>
+          <span class="stat-narrative"><strong>enforcement notices</strong> issued by the ODPC against companies that violated the Data Protection Act, 2019.
+	Analyse which sections are <strong>most violated</strong> and what quantums follow these violations.</span>
         </div>
         <div class="stat-row">
-          <span class="stat-figure">{{ corpus_stats.total_award if corpus_stats else '0.00' }}M</span>
-          <span class="stat-narrative">total compensation, in KES, that the ODPC has ordered companies to pay data subjects</span>
+          <span class="stat-figure">{{ corpus_stats.total_award if corpus_stats else '0.00' }}</span>
+          <span class="stat-narrative">total compensation, <strong>in millions of KES,</strong> that the Data Commissioner has ordered companies to pay data subjects.
+	</span>
         </div>
       </div>
       <a href="#" class="build-case-cta" onclick="return false;">
@@ -349,29 +407,23 @@
 
   <!-- RIGHT: NARRATIVE CASCADE -->
   <div class="hero-right">
-    <p class="cascade-line cascade-1">
-      <a href="/explore" class="cascade-trigger">Search all determinations</a> in natural
-      language. Jot ideas, legal concepts, party names or complaint numbers — see
-      what surfaces.
+    <p class="cascade-line">
+      <span class="cascade-sub w1"><a href="/explore" class="cascade-trigger">Search all ODPC determinations HERE↗</a></span>
     </p>
-    <p class="cascade-line cascade-1">
-      <a href="/sector-search" class="cascade-trigger">Which company carried out the breach</a>,
-      and which industry does it belong to? Digital Lending, Banking, Telco, Healthcare,
-      Employment and more — track how the ODPC rules and map enforcement intensity.
+    <p class="cascade-line-2">
+      <span class="cascade-sub w1"><a href="/sector-search" class="cascade-trigger-2">Which company was mentioned HERE↗</a></span>
     </p>
-    <p class="cascade-line cascade-1">
-      <a href="/sections" class="cascade-trigger">Map the violations according to Sections</a>
-      of the Data Protection Act — observe violation statistics per section, quantum
-      figures, and rates.
+    <p class="cascade-line-3">
+      <span class="cascade-sub w1"><a href="/sections" class="cascade-trigger">Map the data breach to the Act HERE↗</a></span>
     </p>
-    <p class="cascade-line cascade-1">
-      <a href="/patterns" class="cascade-trigger">Visualise the ODPC's enforcements</a>
-      and see what trends show up.
+    <p class="cascade-line-4">
+      <span class="cascade-sub w1"><a href="/patterns" class="cascade-trigger">What patterns emerge from cases HERE↗</a></span>
     </p>
-    <p class="cascade-line cascade-1">
-      <a href="/glitch" class="cascade-trigger">Read through our glitch_ entries</a> to
-      see how tech breaches intersect with law — curated for lawyers, technologists,
-      and anyone interested in the tech-law nexus of a data breach.
+    <p class="cascade-line-5">
+      <span class="cascade-sub w1"><a href="/glitch" class="cascade-trigger-2">Read our glitch_ reports HERE↗</a></span>
+    </p>
+    <p class="cascade-line-6">
+      <span class="cascade-sub w1"><a href="/wall" class="cascade-trigger-2">Access your data rights HERE↗</a></span>
     </p>
   </div>
 
